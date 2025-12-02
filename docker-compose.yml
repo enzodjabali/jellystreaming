@@ -1,17 +1,40 @@
 services:
-  jellystreaming-api:
-    build: .
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
     ports:
-      - "${PORT}:8080"
+      - "8080:8080"
     environment:
-      - JELLYFIN_URL=${JELLYFIN_URL}
-      - JELLYFIN_USER_ID=${JELLYFIN_USER_ID}
-      - JELLYFIN_PARENT_ID=${JELLYFIN_PARENT_ID}
-      - JELLYFIN_API_KEY=${JELLYFIN_API_KEY}
-      - PORT=${PORT}
+      - JELLYFIN_URL=https://watch.jellystreaming.ovh
+      - JELLYFIN_USER_ID=700d4b2ee01941da951a1d2c716476cd
+      - JELLYFIN_PARENT_ID=db4c1708cbb5dd1676284a40f2950aba
+      - JELLYFIN_API_KEY=cad1460de3614949a9ec3efc2f591e50
+      - PORT=8080
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT}/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - jellystreaming
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8080
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - jellystreaming
+
+networks:
+  jellystreaming:
+    driver: bridge
