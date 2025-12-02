@@ -116,6 +116,9 @@ const VideoPlayer = ({ movie, config, onClose }) => {
       'AudioStreamIndex': selectedAudioTrack !== null ? selectedAudioTrack : undefined,
       'SubtitleStreamIndex': selectedSubtitleTrack !== null && selectedSubtitleTrack !== -1 ? selectedSubtitleTrack : undefined,
       
+      // Subtitle delivery method - burn into video for better compatibility
+      'SubtitleMethod': selectedSubtitleTrack !== null && selectedSubtitleTrack !== -1 ? 'Encode' : undefined,
+      
       // Segment settings
       'SegmentLength': '3',
       'TranscodeReasons': 'ContainerNotSupported'
@@ -268,6 +271,31 @@ const VideoPlayer = ({ movie, config, onClose }) => {
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log('HLS manifest parsed successfully');
+        
+        // Enable subtitles if a subtitle track is selected (not "Off")
+        if (selectedSubtitleTrack !== null && selectedSubtitleTrack !== -1) {
+          // Wait for text tracks to be available
+          setTimeout(() => {
+            if (video.textTracks && video.textTracks.length > 0) {
+              console.log('Text tracks available:', video.textTracks.length);
+              // Enable all text tracks to ensure subtitles show
+              for (let i = 0; i < video.textTracks.length; i++) {
+                video.textTracks[i].mode = 'showing';
+                console.log(`Enabled text track ${i}:`, video.textTracks[i]);
+              }
+            }
+          }, 500);
+        } else {
+          // Disable all text tracks when "Off" is selected
+          setTimeout(() => {
+            if (video.textTracks && video.textTracks.length > 0) {
+              for (let i = 0; i < video.textTracks.length; i++) {
+                video.textTracks[i].mode = 'hidden';
+              }
+            }
+          }, 500);
+        }
+        
         video.play().catch(err => {
           console.warn('Autoplay blocked, user interaction required');
         });
