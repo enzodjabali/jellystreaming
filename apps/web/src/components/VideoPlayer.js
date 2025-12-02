@@ -14,17 +14,32 @@ const VideoPlayer = ({ movie, config, onClose }) => {
       'api_key': config.apiKey,
       'DeviceId': deviceId,
       'MediaSourceId': movie.Id,
-      'VideoCodec': 'h264,hevc,av1,vp9',
+      
+      // Codec preferences (prioritize h264 for better compatibility)
+      'VideoCodec': 'h264,hevc,vp9,av1',
       'AudioCodec': 'aac,mp3,opus',
-      'VideoBitrate': '139616000',
-      'AudioBitrate': '384000',
+      
+      // Reduced bitrates for better stability and less memory usage
+      'VideoBitrate': '20000000',  // 20 Mbps instead of 139 Mbps
+      'AudioBitrate': '192000',    // 192 kbps instead of 384 kbps
+      'MaxVideoBitDepth': '8',     // Force 8-bit to reduce processing
+      
       'PlaySessionId': deviceId,
       'TranscodingMaxAudioChannels': '2',
       'RequireAvc': 'false',
-      'Tag': movie.ImageTags?.Primary || '',
       'SegmentContainer': 'mp4',
-      'MinSegments': '2',
-      'BreakOnNonKeyFrames': 'true'
+      'MinSegments': '1',          // Reduced from 2
+      'BreakOnNonKeyFrames': 'false', // Changed to false for better stability
+      
+      // Additional parameters for better streaming
+      'EnableAutoStreamCopy': 'true',
+      'AllowVideoStreamCopy': 'true',
+      'AllowAudioStreamCopy': 'true',
+      'SubtitleStreamIndex': movie.HasSubtitles ? '1' : undefined,
+      
+      // Segment settings
+      'SegmentLength': '3',        // 3 second segments
+      'TranscodeReasons': 'ContainerNotSupported'
     });
     
     return `${config.jellyfinUrl}/videos/${movie.Id}/master.m3u8?${params.toString()}`;
@@ -63,11 +78,41 @@ const VideoPlayer = ({ movie, config, onClose }) => {
     // Check if HLS is supported
     if (Hls.isSupported()) {
       const hls = new Hls({
-        debug: true,
+        debug: false, // Disable debug to reduce console spam
         enableWorker: true,
         lowLatencyMode: false,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60
+        
+        // Buffer settings to prevent crashes and improve performance
+        maxBufferLength: 20,        // Reduced from 30 to use less memory
+        maxMaxBufferLength: 40,     // Reduced from 60 to use less memory
+        maxBufferSize: 60 * 1000 * 1000, // 60 MB buffer size
+        maxBufferHole: 0.5,         // Max hole in buffer
+        
+        // Fragment loading optimizations
+        manifestLoadingTimeOut: 10000,
+        manifestLoadingMaxRetry: 3,
+        manifestLoadingRetryDelay: 1000,
+        
+        levelLoadingTimeOut: 10000,
+        levelLoadingMaxRetry: 3,
+        levelLoadingRetryDelay: 1000,
+        
+        fragLoadingTimeOut: 20000,
+        fragLoadingMaxRetry: 6,     // More retries for 404 errors
+        fragLoadingRetryDelay: 1000,
+        
+        // Audio/Video sync settings
+        abrEwmaDefaultEstimate: 500000,
+        abrBandWidthFactor: 0.95,
+        abrBandWidthUpFactor: 0.7,
+        
+        // Enable progressive streaming
+        progressive: true,
+        
+        // Disable unnecessary features
+        enableSoftwareAES: true,
+        enableWebVTT: true,
+        startFragPrefetch: true
       });
 
       hlsRef.current = hls;
@@ -76,37 +121,58 @@ const VideoPlayer = ({ movie, config, onClose }) => {
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('HLS manifest parsed, attempting to play...');
+        console.log('HLS manifest parsed successfully');
         video.play().catch(err => {
-          console.error('Autoplay failed:', err);
-          setError('Click play to start the video');
+          console.warn('Autoplay blocked, user interaction required');
         });
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
-        console.error('HLS error:', data);
         if (data.fatal) {
+          console.error('Fatal HLS error:', data.type, data.details);
+          
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              console.error('Network error, trying to recover...');
-              hls.startLoad();
+              console.log('Network error, attempting recovery...');
+              // Try to recover by restarting load
+              setTimeout(() => {
+                if (hlsRef.current) {
+                  hls.startLoad();
+                }
+              }, 1000);
               break;
+              
             case Hls.ErrorTypes.MEDIA_ERROR:
-              console.error('Media error, trying to recover...');
+              console.log('Media error, attempting recovery...');
+              // Try to recover media error
               hls.recoverMediaError();
               break;
+              
             default:
-              console.error('Fatal error, cannot recover');
-              setError('Failed to load video stream');
-              hls.destroy();
+              // Cannot recover, destroy and show error
+              console.error('Unrecoverable error');
+              setError('Playback failed. Please try another movie or refresh the page.');
+              if (hlsRef.current) {
+                hlsRef.current.destroy();
+                hlsRef.current = null;
+              }
               break;
           }
+        } else if (data.details === 'fragLoadError' || data.details === 'fragParsingError') {
+          // Non-fatal fragment errors, just log them
+          console.warn('Fragment load issue (non-fatal):', data.details);
         }
       });
 
+      // Handle buffer stalls
+      hls.on(Hls.Events.BUFFER_STALLED_ERROR, () => {
+        console.log('Buffer stalled, reloading...');
+      });
+
       return () => {
-        if (hls) {
-          hls.destroy();
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+          hlsRef.current = null;
         }
       };
     } 
