@@ -12,16 +12,20 @@ const VideoPlayer = ({ movie, config, onClose }) => {
   const [audioTracks, setAudioTracks] = useState([]);
   const [subtitleTracks, setSubtitleTracks] = useState([]);
   const [selectedAudioTrack, setSelectedAudioTrack] = useState(null);
-  const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState(null);
+  const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState(-1); // Default to "Off"
+  const [tracksLoaded, setTracksLoaded] = useState(false);
 
   // Fetch available audio and subtitle tracks
   useEffect(() => {
     const fetchMediaStreams = async () => {
       try {
+        console.log('Fetching media streams for movie:', movie.Id);
         const response = await fetch(
           `${config.jellyfinUrl}/Items/${movie.Id}/PlaybackInfo?UserId=${config.userId}&api_key=${config.apiKey}`
         );
         const data = await response.json();
+        
+        console.log('PlaybackInfo response:', data);
         
         if (data.MediaSources && data.MediaSources.length > 0) {
           const mediaSource = data.MediaSources[0];
@@ -37,9 +41,11 @@ const VideoPlayer = ({ movie, config, onClose }) => {
             isDefault: stream.IsDefault
           }));
           
+          console.log('Audio tracks found:', audio);
+          
           // Extract subtitle tracks with "Off" option
           const subtitles = [
-            { index: -1, displayIndex: -1, language: 'Off', displayTitle: 'Off', isDefault: false }
+            { index: -1, displayIndex: -1, language: 'Off', displayTitle: 'Off', isDefault: true }
           ].concat(
             mediaSource.MediaStreams.filter(s => s.Type === 'Subtitle').map((stream, index) => ({
               index: stream.Index,
@@ -47,22 +53,32 @@ const VideoPlayer = ({ movie, config, onClose }) => {
               language: stream.Language || 'Unknown',
               displayTitle: stream.DisplayTitle || `Subtitle ${index + 1}`,
               codec: stream.Codec,
-              isDefault: stream.IsDefault
+              isDefault: false
             }))
           );
+          
+          console.log('Subtitle tracks found:', subtitles);
           
           setAudioTracks(audio);
           setSubtitleTracks(subtitles);
           
-          // Set default tracks
+          // Set default tracks - prefer first audio track, subtitles off by default
           const defaultAudio = audio.find(a => a.isDefault) || audio[0];
-          const defaultSubtitle = subtitles.find(s => s.isDefault) || subtitles[0];
           
-          setSelectedAudioTrack(defaultAudio?.index || null);
-          setSelectedSubtitleTrack(defaultSubtitle?.index || -1);
+          if (defaultAudio) {
+            setSelectedAudioTrack(defaultAudio.index);
+            console.log('Selected default audio track:', defaultAudio.index);
+          }
+          
+          // Keep subtitles off by default
+          setSelectedSubtitleTrack(-1);
+          console.log('Subtitles set to off by default');
         }
+        
+        setTracksLoaded(true);
       } catch (error) {
         console.error('Error fetching media streams:', error);
+        setTracksLoaded(true); // Still allow playback even if track fetching fails
       }
     };
     
@@ -86,7 +102,8 @@ const VideoPlayer = ({ movie, config, onClose }) => {
     const deviceId = 'jellystreaming-web-' + Date.now();
     const videoBitrate = getQualityBitrate(qualityLevel);
     
-    const params = new URLSearchParams({
+    // Build params object and filter out undefined values
+    const paramsObj = {
       'api_key': config.apiKey,
       'DeviceId': deviceId,
       'MediaSourceId': movie.Id,
@@ -112,17 +129,23 @@ const VideoPlayer = ({ movie, config, onClose }) => {
       'AllowVideoStreamCopy': qualityLevel === 'auto' ? 'true' : 'false',
       'AllowAudioStreamCopy': 'true',
       
-      // Audio and subtitle track selection
-      'AudioStreamIndex': selectedAudioTrack !== null ? selectedAudioTrack : undefined,
-      'SubtitleStreamIndex': selectedSubtitleTrack !== null && selectedSubtitleTrack !== -1 ? selectedSubtitleTrack : undefined,
-      
-      // Subtitle delivery method - burn into video for better compatibility
-      'SubtitleMethod': selectedSubtitleTrack !== null && selectedSubtitleTrack !== -1 ? 'Encode' : undefined,
-      
       // Segment settings
       'SegmentLength': '3',
       'TranscodeReasons': 'ContainerNotSupported'
-    });
+    };
+    
+    // Add audio track index if available
+    if (selectedAudioTrack !== null && selectedAudioTrack !== undefined) {
+      paramsObj['AudioStreamIndex'] = selectedAudioTrack;
+    }
+    
+    // Add subtitle track and method only if subtitles are enabled (not "Off")
+    if (selectedSubtitleTrack !== null && selectedSubtitleTrack !== -1) {
+      paramsObj['SubtitleStreamIndex'] = selectedSubtitleTrack;
+      paramsObj['SubtitleMethod'] = 'Encode';
+    }
+    
+    const params = new URLSearchParams(paramsObj);
     
     return `${config.jellyfinUrl}/videos/${movie.Id}/master.m3u8?${params.toString()}`;
   };
@@ -220,9 +243,17 @@ const VideoPlayer = ({ movie, config, onClose }) => {
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    
+    // Wait for tracks to be loaded before initializing stream
+    if (!tracksLoaded) {
+      console.log('Waiting for tracks to load...');
+      return;
+    }
 
     const streamUrl = getStreamUrl();
-    console.log('Stream URL:', streamUrl);
+    console.log('Initializing stream with URL:', streamUrl);
+    console.log('Selected audio track:', selectedAudioTrack);
+    console.log('Selected subtitle track:', selectedSubtitleTrack);
 
     // Check if HLS is supported
     if (Hls.isSupported()) {
@@ -302,29 +333,41 @@ const VideoPlayer = ({ movie, config, onClose }) => {
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
+        console.log('HLS Error Event:', {
+          fatal: data.fatal,
+          type: data.type,
+          details: data.details,
+          response: data.response,
+          url: data.url
+        });
+        
         if (data.fatal) {
-          console.error('Fatal HLS error:', data.type, data.details);
+          console.error('Fatal HLS error:', data.type, data.details, data);
           
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              console.log('Network error, attempting recovery...');
+              console.log('Fatal network error, attempting recovery...');
+              console.log('Failed URL:', data.url);
+              console.log('Response code:', data.response?.code);
+              
               // Try to recover by restarting load
               setTimeout(() => {
                 if (hlsRef.current) {
+                  console.log('Attempting to restart load...');
                   hls.startLoad();
                 }
               }, 1000);
               break;
               
             case Hls.ErrorTypes.MEDIA_ERROR:
-              console.log('Media error, attempting recovery...');
+              console.log('Fatal media error, attempting recovery...');
               // Try to recover media error
               hls.recoverMediaError();
               break;
               
             default:
               // Cannot recover, destroy and show error
-              console.error('Unrecoverable error');
+              console.error('Unrecoverable error, destroying HLS instance');
               setError('Playback failed. Please try another movie or refresh the page.');
               if (hlsRef.current) {
                 hlsRef.current.destroy();
@@ -332,9 +375,17 @@ const VideoPlayer = ({ movie, config, onClose }) => {
               }
               break;
           }
-        } else if (data.details === 'fragLoadError' || data.details === 'fragParsingError') {
-          // Non-fatal fragment errors, just log them
-          console.warn('Fragment load issue (non-fatal):', data.details);
+        } else {
+          // Non-fatal errors
+          if (data.details === 'fragLoadError') {
+            console.warn('Fragment load error (non-fatal):', data.url);
+          } else if (data.details === 'fragParsingError') {
+            console.warn('Fragment parsing error (non-fatal):', data.details);
+          } else if (data.details === 'manifestLoadError') {
+            console.error('Manifest load error:', data.url, data.response);
+          } else {
+            console.warn('Non-fatal HLS error:', data.details);
+          }
         }
       });
 
@@ -362,7 +413,7 @@ const VideoPlayer = ({ movie, config, onClose }) => {
     } else {
       setError('HLS is not supported in this browser');
     }
-  }, [movie.Id, config, quality, selectedAudioTrack, selectedSubtitleTrack]);
+  }, [movie.Id, config, quality, selectedAudioTrack, selectedSubtitleTrack, tracksLoaded]);
 
   // Handle playback speed changes
   useEffect(() => {
