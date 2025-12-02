@@ -10,6 +10,8 @@ services:
       - JELLYFIN_USER_ID=${JELLYFIN_USER_ID}
       - JELLYFIN_PARENT_ID=${JELLYFIN_PARENT_ID}
       - JELLYFIN_API_KEY=${JELLYFIN_API_KEY}
+      - JELLYSEERR_URL=${JELLYSEERR_URL}
+      - JELLYSEERR_API_KEY=${JELLYSEERR_API_KEY}
       - PORT=${PORT}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]

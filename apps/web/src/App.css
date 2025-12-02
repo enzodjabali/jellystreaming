@@ -1,23 +1,40 @@
 .app {
+  display: flex;
   min-height: 100vh;
-  background-color: #0f0f0f;
+  background-color: #0f1117;
+  color: #fff;
 }
 
-.app-header {
+.main-content {
+  flex: 1;
+  margin-left: 240px;
+  min-height: 100vh;
+  background: #0f1117;
+}
+
+.jellyfin-section {
   padding: 2rem;
-  text-align: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
-.app-header h1 {
+.section-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.section-header h1 {
   font-size: 2.5rem;
   margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .subtitle {
   font-size: 1rem;
-  opacity: 0.9;
+  opacity: 0.7;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .loading,
@@ -69,4 +86,25 @@
 .error button:hover {
   background: #764ba2;
   transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    margin-left: 0;
+    padding-top: 60px;
+  }
+
+  .jellyfin-section {
+    padding: 1rem;
+  }
+
+  .section-header h1 {
+    font-size: 1.75rem;
+  }
 }

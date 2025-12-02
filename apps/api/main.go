@@ -33,22 +33,26 @@ type JellyfinResponse struct {
 }
 
 type Config struct {
-	JellyfinURL    string
-	JellyfinUserID string
-	JellyfinAPIKey string
-	ParentID       string
-	Port           string
+	JellyfinURL      string
+	JellyfinUserID   string
+	JellyfinAPIKey   string
+	ParentID         string
+	JellyseerrURL    string
+	JellyseerrAPIKey string
+	Port             string
 }
 
 var config Config
 
 func init() {
 	config = Config{
-		JellyfinURL:    getEnv("JELLYFIN_URL", "https://watch.jellystreaming.ovh"),
-		JellyfinUserID: getEnv("JELLYFIN_USER_ID", "700d4b2ee01941da951a1d2c716476cd"),
-		JellyfinAPIKey: getEnv("JELLYFIN_API_KEY", ""),
-		ParentID:       getEnv("JELLYFIN_PARENT_ID", "db4c1708cbb5dd1676284a40f2950aba"),
-		Port:           getEnv("PORT", "8080"),
+		JellyfinURL:      getEnv("JELLYFIN_URL", "https://watch.jellystreaming.ovh"),
+		JellyfinUserID:   getEnv("JELLYFIN_USER_ID", ""),
+		JellyfinAPIKey:   getEnv("JELLYFIN_API_KEY", ""),
+		ParentID:         getEnv("JELLYFIN_PARENT_ID", ""),
+		JellyseerrURL:    getEnv("JELLYSEERR_URL", ""),
+		JellyseerrAPIKey: getEnv("JELLYSEERR_API_KEY", ""),
+		Port:             getEnv("PORT", "8080"),
 	}
 }
 
@@ -166,10 +170,115 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Jellyseerr proxy handlers
+func fetchFromJellyseerr(endpoint string) ([]byte, error) {
+	url := fmt.Sprintf("%s/%s", config.JellyseerrURL, endpoint)
+
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+
+	// Add Jellyseerr API key
+	req.Header.Set("X-Api-Key", config.JellyseerrAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error making request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("jellyseerr API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response: %v", err)
+	}
+
+	return body, nil
+}
+
+func trendingHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get page from query parameter, default to 1
+	page := r.URL.Query().Get("page")
+	if page == "" {
+		page = "1"
+	}
+
+	endpoint := fmt.Sprintf("discover/trending?page=%s", page)
+	body, err := fetchFromJellyseerr(endpoint)
+	if err != nil {
+		log.Printf("Error fetching trending from Jellyseerr: %v", err)
+		http.Error(w, fmt.Sprintf("Error fetching trending: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(body)
+}
+
+func popularMoviesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get page from query parameter, default to 1
+	page := r.URL.Query().Get("page")
+	if page == "" {
+		page = "1"
+	}
+
+	endpoint := fmt.Sprintf("discover/movies?page=%s", page)
+	body, err := fetchFromJellyseerr(endpoint)
+	if err != nil {
+		log.Printf("Error fetching popular movies from Jellyseerr: %v", err)
+		http.Error(w, fmt.Sprintf("Error fetching popular movies: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(body)
+}
+
+func requestStatsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	endpoint := "request/count"
+	body, err := fetchFromJellyseerr(endpoint)
+	if err != nil {
+		log.Printf("Error fetching request stats from Jellyseerr: %v", err)
+		http.Error(w, fmt.Sprintf("Error fetching request stats: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(body)
+}
+
 func main() {
 	// Setup routes with CORS
 	http.HandleFunc("/api/movies", enableCORS(moviesHandler))
 	http.HandleFunc("/api/config", enableCORS(configHandler))
+	http.HandleFunc("/api/jellyseerr/trending", enableCORS(trendingHandler))
+	http.HandleFunc("/api/jellyseerr/popular", enableCORS(popularMoviesHandler))
+	http.HandleFunc("/api/jellyseerr/stats", enableCORS(requestStatsHandler))
 	http.HandleFunc("/health", enableCORS(healthHandler))
 
 	// Root handler
@@ -179,9 +288,12 @@ func main() {
 			"message": "JellyStreaming API",
 			"version": "2.0.0",
 			"endpoints": map[string]string{
-				"/api/movies": "GET - Fetch movies from Jellyfin",
-				"/api/config": "GET - Get Jellyfin configuration",
-				"/health":     "GET - Health check",
+				"/api/movies":              "GET - Fetch movies from Jellyfin",
+				"/api/config":              "GET - Get Jellyfin configuration",
+				"/api/jellyseerr/trending": "GET - Fetch trending from Jellyseerr (page query param)",
+				"/api/jellyseerr/popular":  "GET - Fetch popular movies from Jellyseerr (page query param)",
+				"/api/jellyseerr/stats":    "GET - Fetch request statistics from Jellyseerr",
+				"/health":                  "GET - Health check",
 			},
 		})
 	}))
