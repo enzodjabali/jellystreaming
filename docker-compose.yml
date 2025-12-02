@@ -6,20 +6,17 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - JELLYFIN_URL=https://watch.jellystreaming.ovh
-      - JELLYFIN_USER_ID=700d4b2ee01941da951a1d2c716476cd
-      - JELLYFIN_PARENT_ID=db4c1708cbb5dd1676284a40f2950aba
-      - JELLYFIN_API_KEY=cad1460de3614949a9ec3efc2f591e50
-      - PORT=8080
-    restart: unless-stopped
+      - JELLYFIN_URL=${JELLYFIN_URL}
+      - JELLYFIN_USER_ID=${JELLYFIN_USER_ID}
+      - JELLYFIN_PARENT_ID=${JELLYFIN_PARENT_ID}
+      - JELLYFIN_API_KEY=${JELLYFIN_API_KEY}
+      - PORT=${PORT}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    networks:
-      - jellystreaming
 
   web:
     build:
@@ -28,13 +25,6 @@ services:
     ports:
       - "3000:80"
     environment:
-      - REACT_APP_API_URL=http://localhost:8080
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
     depends_on:
       - api
-    restart: unless-stopped
-    networks:
-      - jellystreaming
-
-networks:
-  jellystreaming:
-    driver: bridge
