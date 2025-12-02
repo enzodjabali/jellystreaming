@@ -6,10 +6,27 @@ const VideoPlayer = ({ movie, config, onClose }) => {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
   const [error, setError] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [quality, setQuality] = useState('auto');
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
 
-  const getStreamUrl = () => {
+  const getQualityBitrate = (qualityLevel) => {
+    const bitrates = {
+      'auto': '20000000',    // 20 Mbps
+      '1080p': '10000000',   // 10 Mbps
+      '720p': '5000000',     // 5 Mbps
+      '480p': '2500000',     // 2.5 Mbps
+      '360p': '1000000',     // 1 Mbps
+      '240p': '500000'       // 500 kbps
+    };
+    return bitrates[qualityLevel] || bitrates['auto'];
+  };
+
+  const getStreamUrl = (qualityLevel = quality) => {
     // Jellyfin HLS streaming URL (master playlist)
     const deviceId = 'jellystreaming-web-' + Date.now();
+    const videoBitrate = getQualityBitrate(qualityLevel);
+    
     const params = new URLSearchParams({
       'api_key': config.apiKey,
       'DeviceId': deviceId,
@@ -19,26 +36,26 @@ const VideoPlayer = ({ movie, config, onClose }) => {
       'VideoCodec': 'h264,hevc,vp9,av1',
       'AudioCodec': 'aac,mp3,opus',
       
-      // Reduced bitrates for better stability and less memory usage
-      'VideoBitrate': '20000000',  // 20 Mbps instead of 139 Mbps
-      'AudioBitrate': '192000',    // 192 kbps instead of 384 kbps
-      'MaxVideoBitDepth': '8',     // Force 8-bit to reduce processing
+      // Bitrates based on selected quality
+      'VideoBitrate': videoBitrate,
+      'AudioBitrate': '192000',
+      'MaxVideoBitDepth': '8',
       
       'PlaySessionId': deviceId,
       'TranscodingMaxAudioChannels': '2',
       'RequireAvc': 'false',
       'SegmentContainer': 'mp4',
-      'MinSegments': '1',          // Reduced from 2
-      'BreakOnNonKeyFrames': 'false', // Changed to false for better stability
+      'MinSegments': '1',
+      'BreakOnNonKeyFrames': 'false',
       
       // Additional parameters for better streaming
-      'EnableAutoStreamCopy': 'true',
-      'AllowVideoStreamCopy': 'true',
+      'EnableAutoStreamCopy': qualityLevel === 'auto' ? 'true' : 'false',
+      'AllowVideoStreamCopy': qualityLevel === 'auto' ? 'true' : 'false',
       'AllowAudioStreamCopy': 'true',
       'SubtitleStreamIndex': movie.HasSubtitles ? '1' : undefined,
       
       // Segment settings
-      'SegmentLength': '3',        // 3 second segments
+      'SegmentLength': '3',
       'TranscodeReasons': 'ContainerNotSupported'
     });
     
@@ -55,6 +72,33 @@ const VideoPlayer = ({ movie, config, onClose }) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  const handleQualityChange = (newQuality) => {
+    setQuality(newQuality);
+    setShowSettings(false);
+    
+    // Save current time
+    const currentTime = videoRef.current?.currentTime || 0;
+    
+    // Reload stream with new quality
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+    }
+    
+    // Reinitialize with new quality
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = currentTime;
+      }
+    }, 100);
+  };
+
+  const handleSpeedChange = (speed) => {
+    setPlaybackSpeed(speed);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = speed;
+    }
   };
 
   useEffect(() => {
@@ -188,13 +232,64 @@ const VideoPlayer = ({ movie, config, onClose }) => {
     } else {
       setError('HLS is not supported in this browser');
     }
-  }, [movie.Id, config]);
+  }, [movie.Id, config, quality]);
+
+  // Handle playback speed changes
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = playbackSpeed;
+    }
+  }, [playbackSpeed]);
 
   return (
     <div className="video-player-container">
       <button className="close-button" onClick={onClose}>
         ✕
       </button>
+
+      <button 
+        className="settings-button" 
+        onClick={() => setShowSettings(!showSettings)}
+        title="Settings"
+      >
+        ⚙️
+      </button>
+
+      {showSettings && (
+        <div className="settings-panel">
+          <div className="settings-section">
+            <h3>Quality</h3>
+            <div className="settings-options">
+              {['auto', '1080p', '720p', '480p', '360p', '240p'].map((q) => (
+                <button
+                  key={q}
+                  className={`settings-option ${quality === q ? 'active' : ''}`}
+                  onClick={() => handleQualityChange(q)}
+                >
+                  {q === 'auto' ? 'Auto' : q}
+                  {quality === q && ' ✓'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="settings-section">
+            <h3>Playback Speed</h3>
+            <div className="settings-options">
+              {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
+                <button
+                  key={speed}
+                  className={`settings-option ${playbackSpeed === speed ? 'active' : ''}`}
+                  onClick={() => handleSpeedChange(speed)}
+                >
+                  {speed}x
+                  {playbackSpeed === speed && ' ✓'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="video-wrapper">
         {error && (
