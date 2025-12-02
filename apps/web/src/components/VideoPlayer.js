@@ -9,6 +9,65 @@ const VideoPlayer = ({ movie, config, onClose }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [quality, setQuality] = useState('auto');
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [audioTracks, setAudioTracks] = useState([]);
+  const [subtitleTracks, setSubtitleTracks] = useState([]);
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState(null);
+  const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState(null);
+
+  // Fetch available audio and subtitle tracks
+  useEffect(() => {
+    const fetchMediaStreams = async () => {
+      try {
+        const response = await fetch(
+          `${config.jellyfinUrl}/Items/${movie.Id}/PlaybackInfo?UserId=${config.userId}&api_key=${config.apiKey}`
+        );
+        const data = await response.json();
+        
+        if (data.MediaSources && data.MediaSources.length > 0) {
+          const mediaSource = data.MediaSources[0];
+          
+          // Extract audio tracks
+          const audio = mediaSource.MediaStreams.filter(s => s.Type === 'Audio').map((stream, index) => ({
+            index: stream.Index,
+            displayIndex: index,
+            language: stream.Language || 'Unknown',
+            displayTitle: stream.DisplayTitle || `Audio ${index + 1}`,
+            codec: stream.Codec,
+            channels: stream.Channels,
+            isDefault: stream.IsDefault
+          }));
+          
+          // Extract subtitle tracks with "Off" option
+          const subtitles = [
+            { index: -1, displayIndex: -1, language: 'Off', displayTitle: 'Off', isDefault: false }
+          ].concat(
+            mediaSource.MediaStreams.filter(s => s.Type === 'Subtitle').map((stream, index) => ({
+              index: stream.Index,
+              displayIndex: index,
+              language: stream.Language || 'Unknown',
+              displayTitle: stream.DisplayTitle || `Subtitle ${index + 1}`,
+              codec: stream.Codec,
+              isDefault: stream.IsDefault
+            }))
+          );
+          
+          setAudioTracks(audio);
+          setSubtitleTracks(subtitles);
+          
+          // Set default tracks
+          const defaultAudio = audio.find(a => a.isDefault) || audio[0];
+          const defaultSubtitle = subtitles.find(s => s.isDefault) || subtitles[0];
+          
+          setSelectedAudioTrack(defaultAudio?.index || null);
+          setSelectedSubtitleTrack(defaultSubtitle?.index || -1);
+        }
+      } catch (error) {
+        console.error('Error fetching media streams:', error);
+      }
+    };
+    
+    fetchMediaStreams();
+  }, [movie.Id, config]);
 
   const getQualityBitrate = (qualityLevel) => {
     const bitrates = {
@@ -52,7 +111,10 @@ const VideoPlayer = ({ movie, config, onClose }) => {
       'EnableAutoStreamCopy': qualityLevel === 'auto' ? 'true' : 'false',
       'AllowVideoStreamCopy': qualityLevel === 'auto' ? 'true' : 'false',
       'AllowAudioStreamCopy': 'true',
-      'SubtitleStreamIndex': movie.HasSubtitles ? '1' : undefined,
+      
+      // Audio and subtitle track selection
+      'AudioStreamIndex': selectedAudioTrack !== null ? selectedAudioTrack : undefined,
+      'SubtitleStreamIndex': selectedSubtitleTrack !== null && selectedSubtitleTrack !== -1 ? selectedSubtitleTrack : undefined,
       
       // Segment settings
       'SegmentLength': '3',
@@ -99,6 +161,46 @@ const VideoPlayer = ({ movie, config, onClose }) => {
     if (videoRef.current) {
       videoRef.current.playbackRate = speed;
     }
+  };
+
+  const handleAudioTrackChange = (trackIndex) => {
+    setSelectedAudioTrack(trackIndex);
+    setShowSettings(false);
+    
+    // Save current time
+    const currentTime = videoRef.current?.currentTime || 0;
+    
+    // Reload stream with new audio track
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+    }
+    
+    // Reinitialize with new audio track
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = currentTime;
+      }
+    }, 100);
+  };
+
+  const handleSubtitleTrackChange = (trackIndex) => {
+    setSelectedSubtitleTrack(trackIndex);
+    setShowSettings(false);
+    
+    // Save current time
+    const currentTime = videoRef.current?.currentTime || 0;
+    
+    // Reload stream with new subtitle track
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+    }
+    
+    // Reinitialize with new subtitle track
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = currentTime;
+      }
+    }, 100);
   };
 
   useEffect(() => {
@@ -232,7 +334,7 @@ const VideoPlayer = ({ movie, config, onClose }) => {
     } else {
       setError('HLS is not supported in this browser');
     }
-  }, [movie.Id, config, quality]);
+  }, [movie.Id, config, quality, selectedAudioTrack, selectedSubtitleTrack]);
 
   // Handle playback speed changes
   useEffect(() => {
@@ -288,6 +390,42 @@ const VideoPlayer = ({ movie, config, onClose }) => {
               ))}
             </div>
           </div>
+
+          {audioTracks.length > 0 && (
+            <div className="settings-section">
+              <h3>Audio</h3>
+              <div className="settings-options">
+                {audioTracks.map((track) => (
+                  <button
+                    key={track.index}
+                    className={`settings-option ${selectedAudioTrack === track.index ? 'active' : ''}`}
+                    onClick={() => handleAudioTrackChange(track.index)}
+                  >
+                    {track.displayTitle}
+                    {selectedAudioTrack === track.index && ' ✓'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {subtitleTracks.length > 0 && (
+            <div className="settings-section">
+              <h3>Subtitles</h3>
+              <div className="settings-options">
+                {subtitleTracks.map((track) => (
+                  <button
+                    key={track.index}
+                    className={`settings-option ${selectedSubtitleTrack === track.index ? 'active' : ''}`}
+                    onClick={() => handleSubtitleTrackChange(track.index)}
+                  >
+                    {track.displayTitle}
+                    {selectedSubtitleTrack === track.index && ' ✓'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
