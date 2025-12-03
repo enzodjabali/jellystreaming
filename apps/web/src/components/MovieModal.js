@@ -10,6 +10,7 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
   const [radarrMovie, setRadarrMovie] = useState(null);
   const [queueItem, setQueueItem] = useState(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [justAdded, setJustAdded] = useState(false);
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -302,11 +303,17 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
       // Set the Radarr movie so polling starts
       setRadarrMovie(result);
       setDownloadSuccess(true);
+      setJustAdded(true);
       
       // Show success message briefly
       setTimeout(() => {
         setDownloadSuccess(false);
       }, 2000);
+      
+      // Keep justAdded flag for 30 seconds to prevent "Not available" flash
+      setTimeout(() => {
+        setJustAdded(false);
+      }, 30000);
       
       console.log('Movie added to Radarr successfully');
     } catch (error) {
@@ -364,7 +371,11 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
       if (radarrMovie.hasFile) {
         return { text: 'Processing...', disabled: true, progress: 100 };
       }
-      // If movie has no file and is not in queue, it means Radarr couldn't find it
+      // If movie was just added, show "Searching..." instead of "Not available"
+      if (justAdded) {
+        return { text: 'Searching...', disabled: true, progress: 0 };
+      }
+      // If movie has no file and is not in queue and wasn't just added, it means Radarr couldn't find it
       return { text: 'Not available', disabled: true, progress: 0, notAvailable: true };
     }
     

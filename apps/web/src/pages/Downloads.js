@@ -18,7 +18,13 @@ const Downloads = () => {
     try {
       setError(null);
       const data = await radarrApi.getQueue();
-      setQueue(data.records || []);
+      // Filter to only show downloading movies (not completed/importing)
+      const activeDownloads = (data.records || []).filter(item => 
+        item.status === 'downloading' || 
+        item.status === 'queued' || 
+        item.status === 'paused'
+      );
+      setQueue(activeDownloads);
     } catch (err) {
       console.error('Error fetching queue:', err);
       setError('Failed to load download queue');
@@ -153,18 +159,6 @@ const Downloads = () => {
                     <span className="info-label">Time left:</span>
                     <span className="info-value">{formatTimeLeft(item.timeleft)}</span>
                   </div>
-                  {item.protocol && (
-                    <div className="info-row">
-                      <span className="info-label">Protocol:</span>
-                      <span className="info-value">{item.protocol}</span>
-                    </div>
-                  )}
-                  {item.downloadClient && (
-                    <div className="info-row">
-                      <span className="info-label">Client:</span>
-                      <span className="info-value">{item.downloadClient}</span>
-                    </div>
-                  )}
                 </div>
 
                 {item.size > 0 && (
