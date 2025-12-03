@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
@@ -158,6 +159,101 @@ func configHandler(w http.ResponseWriter, r *http.Request) {
 		"userId":      config.JellyfinUserID,
 		"apiKey":      config.JellyfinAPIKey,
 	})
+}
+
+func searchMovieHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get search query from URL params
+	title := r.URL.Query().Get("title")
+	if title == "" {
+		http.Error(w, "Missing title parameter", http.StatusBadRequest)
+		return
+	}
+
+	// Log the search query
+	log.Printf("Searching Jellyfin for: %s", title)
+
+	// Search in Jellyfin - Build URL with proper query parameters
+	baseURL := fmt.Sprintf(
+		"%s/Users/%s/Items",
+		config.JellyfinURL,
+		config.JellyfinUserID,
+	)
+
+	// Create URL with properly encoded query parameters
+	jellyfinURL, err := url.Parse(baseURL)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error parsing URL: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Add query parameters
+	query := jellyfinURL.Query()
+	query.Set("SearchTerm", title)
+	query.Set("IncludeItemTypes", "Movie")
+	query.Set("Recursive", "true")
+	query.Set("Fields", "PrimaryImageAspectRatio,ProductionYear")
+	query.Set("ImageTypeLimit", "1")
+	query.Set("EnableImageTypes", "Primary,Backdrop")
+	query.Set("ParentId", config.ParentID)
+	query.Set("Limit", "20")
+	jellyfinURL.RawQuery = query.Encode()
+
+	urlStr := jellyfinURL.String()
+	log.Printf("Jellyfin URL: %s", urlStr)
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	req, err := http.NewRequest("GET", urlStr, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error creating request: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Add authentication header if API key is set
+	if config.JellyfinAPIKey != "" {
+		req.Header.Set("X-Emby-Token", config.JellyfinAPIKey)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error making request: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		http.Error(w, fmt.Sprintf("Jellyfin API returned status %d: %s", resp.StatusCode, string(body)), http.StatusInternalServerError)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error reading response: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	var jellyfinResp JellyfinResponse
+	if err := json.Unmarshal(body, &jellyfinResp); err != nil {
+		http.Error(w, fmt.Sprintf("Error parsing response: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Log the results
+	log.Printf("Found %d movies for search '%s'", jellyfinResp.TotalRecordCount, title)
+	for _, movie := range jellyfinResp.Items {
+		log.Printf("  - %s (%d)", movie.Name, movie.ProductionYear)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(jellyfinResp)
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
@@ -397,6 +493,7 @@ func main() {
 	// Setup routes with CORS
 	http.HandleFunc("/api/movies", enableCORS(moviesHandler))
 	http.HandleFunc("/api/config", enableCORS(configHandler))
+	http.HandleFunc("/api/movies/search", enableCORS(searchMovieHandler))
 	http.HandleFunc("/health", enableCORS(healthHandler))
 
 	// TMDB proxy routes
@@ -416,6 +513,7 @@ func main() {
 			"version": "2.0.0",
 			"endpoints": map[string]string{
 				"/api/movies":        "GET - Fetch movies from Jellyfin",
+				"/api/movies/search": "GET - Search movie in Jellyfin (requires ?title=)",
 				"/api/config":        "GET - Get Jellyfin configuration",
 				"/health":            "GET - Health check",
 				"/api/tmdb/trending": "GET - Get trending movies from TMDB",

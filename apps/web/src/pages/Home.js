@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { tmdbApi } from '../services/api';
+import { tmdbApi, jellyfinApi } from '../services/api';
 import MovieCarousel from '../components/MovieCarousel';
 import MovieModal from '../components/MovieModal';
+import VideoPlayer from '../components/VideoPlayer';
 import '../styles/Home.css';
 
 const Home = () => {
@@ -12,11 +13,14 @@ const Home = () => {
   const [comedyMovies, setComedyMovies] = useState([]);
   const [horrorMovies, setHorrorMovies] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
+  const [playingMovie, setPlayingMovie] = useState(null);
+  const [jellyfinConfig, setJellyfinConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [navScrolled, setNavScrolled] = useState(false);
 
   useEffect(() => {
     fetchMovies();
+    fetchJellyfinConfig();
     
     const handleScroll = () => {
       setNavScrolled(window.scrollY > 100);
@@ -25,6 +29,15 @@ const Home = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const fetchJellyfinConfig = async () => {
+    try {
+      const config = await jellyfinApi.getConfig();
+      setJellyfinConfig(config);
+    } catch (error) {
+      console.error('Error fetching Jellyfin config:', error);
+    }
+  };
 
   const fetchMovies = async () => {
     try {
@@ -74,8 +87,19 @@ const Home = () => {
     setSelectedMovie(null);
   };
 
-  const handlePlayMovie = () => {
-    alert('Play functionality to be implemented with video player');
+  const handlePlayMovie = (jellyfinMovie) => {
+    if (jellyfinMovie) {
+      // Movie exists in Jellyfin, play it
+      setPlayingMovie(jellyfinMovie);
+      setSelectedMovie(null);
+    } else {
+      // Movie not in Jellyfin (shouldn't happen with current UI)
+      alert('This movie is not available in your library');
+    }
+  };
+
+  const handleClosePlayer = () => {
+    setPlayingMovie(null);
   };
 
   if (loading) {
@@ -84,6 +108,17 @@ const Home = () => {
         <div className="spinner"></div>
         <p>Loading content...</p>
       </div>
+    );
+  }
+
+  // If playing a movie, show the video player
+  if (playingMovie && jellyfinConfig) {
+    return (
+      <VideoPlayer
+        movie={playingMovie}
+        config={jellyfinConfig}
+        onClose={handleClosePlayer}
+      />
     );
   }
 

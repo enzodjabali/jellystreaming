@@ -116,6 +116,20 @@ export const jellyfinApi = {
     }
   },
 
+  searchMovie: async (title) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/movies/search?title=${encodeURIComponent(title)}`
+      );
+      if (!response.ok) throw new Error('Failed to search movie');
+      const data = await response.json();
+      return data.Items || [];
+    } catch (error) {
+      console.error('Error searching movie:', error);
+      throw error;
+    }
+  },
+
   getImageUrl: (movieId, config) => {
     if (!config || !movieId) return null;
     return `${config.jellyfinUrl}/Items/${movieId}/Images/Primary?api_key=${config.apiKey}`;
