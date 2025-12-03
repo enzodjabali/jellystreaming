@@ -150,13 +150,40 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
   }, []);
 
   const handleSeasonToggle = (seasonNumber) => {
-    setSelectedSeasons(prev => {
-      if (prev.includes(seasonNumber)) {
-        return prev.filter(s => s !== seasonNumber);
-      } else {
-        return [...prev, seasonNumber];
-      }
-    });
+    if (sonarrSeries) {
+      // For existing series, toggle in selectedSeasons (will be merged later)
+      setSelectedSeasons(prev => {
+        // Start with currently monitored seasons if selectedSeasons is empty
+        if (prev.length === 0) {
+          const currentlyMonitored = sonarrSeries.seasons
+            .filter(s => s.monitored && s.seasonNumber > 0)
+            .map(s => s.seasonNumber);
+          
+          // Toggle the clicked season
+          if (currentlyMonitored.includes(seasonNumber)) {
+            return currentlyMonitored.filter(s => s !== seasonNumber);
+          } else {
+            return [...currentlyMonitored, seasonNumber];
+          }
+        }
+        
+        // Normal toggle
+        if (prev.includes(seasonNumber)) {
+          return prev.filter(s => s !== seasonNumber);
+        } else {
+          return [...prev, seasonNumber];
+        }
+      });
+    } else {
+      // For new series
+      setSelectedSeasons(prev => {
+        if (prev.includes(seasonNumber)) {
+          return prev.filter(s => s !== seasonNumber);
+        } else {
+          return [...prev, seasonNumber];
+        }
+      });
+    }
   };
 
   const handleDownload = async () => {
@@ -170,8 +197,50 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
         tvdbId,
         tmdbId,
         isTMDBSeries,
-        series
+        series,
+        isUpdate: !!sonarrSeries
       });
+
+      // If updating existing series
+      if (sonarrSeries) {
+        // Determine which seasons should be monitored
+        let seasonsToMonitor;
+        if (selectedSeasons.length === 0) {
+          // No changes, keep current monitoring
+          seasonsToMonitor = sonarrSeries.seasons.map(s => s.seasonNumber).filter(s => {
+            const season = sonarrSeries.seasons.find(ss => ss.seasonNumber === s);
+            return season && season.monitored;
+          });
+        } else {
+          // Use selected seasons
+          seasonsToMonitor = selectedSeasons;
+        }
+        
+        // Update season monitoring
+        const updatedSeasons = sonarrSeries.seasons.map(s => ({
+          ...s,
+          monitored: s.seasonNumber === 0 ? false : seasonsToMonitor.includes(s.seasonNumber)
+        }));
+
+        const updatedSeriesData = {
+          ...sonarrSeries,
+          seasons: updatedSeasons,
+          monitored: true,
+          addOptions: {
+            searchForMissingEpisodes: true
+          }
+        };
+
+        await sonarrApi.updateSeries(updatedSeriesData);
+        alert('Series updated in Sonarr! New seasons will start downloading.');
+        
+        // Refresh series data
+        const allSonarrSeries = await sonarrApi.getSeries();
+        const updated = allSonarrSeries.find(s => s.id === sonarrSeries.id);
+        setSonarrSeries(updated);
+        setDownloading(false);
+        return;
+      }
 
       // Sonarr v3 can work with TVDB ID or TMDB ID
       // Try TVDB first, fallback to TMDB lookup
@@ -181,7 +250,7 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
         return;
       }
 
-      // Prepare seasons array
+      // Prepare seasons array for new series
       const seasons = tvDetails?.seasons
         ?.filter(s => s.season_number > 0) // Exclude specials
         ?.map(s => ({
@@ -356,29 +425,52 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
               )}
 
               {/* Season Selection */}
-              {!sonarrSeries && tvDetails?.seasons && (
+              {tvDetails?.seasons && (
                 <div className="season-selection">
-                  <h3>Select Seasons to Download:</h3>
+                  <h3>{sonarrSeries ? 'Seasons Status:' : 'Select Seasons to Download:'}</h3>
                   <div className="seasons-grid">
                     {tvDetails.seasons
                       .filter(s => s.season_number > 0)
-                      .map(season => (
-                        <label key={season.id} className="season-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={selectedSeasons.length === 0 || selectedSeasons.includes(season.season_number)}
-                            onChange={() => handleSeasonToggle(season.season_number)}
-                          />
-                          <span>Season {season.season_number}</span>
-                          <span className="episode-count">({season.episode_count} episodes)</span>
-                        </label>
-                      ))}
+                      .map(season => {
+                        const sonarrSeason = sonarrSeries?.seasons?.find(s => s.seasonNumber === season.season_number);
+                        const isMonitored = sonarrSeason?.monitored || false;
+                        const hasFiles = sonarrSeason?.statistics?.episodeFileCount > 0;
+                        
+                        // Determine checked state
+                        const isChecked = sonarrSeries 
+                          ? (selectedSeasons.length === 0 ? isMonitored : selectedSeasons.includes(season.season_number))
+                          : (selectedSeasons.length === 0 || selectedSeasons.includes(season.season_number));
+                        
+                        return (
+                          <label key={season.id} className="season-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleSeasonToggle(season.season_number)}
+                            />
+                            <span>Season {season.season_number}</span>
+                            <span className="episode-count">({season.episode_count} episodes)</span>
+                            {sonarrSeries && (
+                              <span className={`season-status ${hasFiles ? 'downloaded' : isMonitored ? 'monitored' : 'not-monitored'}`}>
+                                {hasFiles ? '✓ Downloaded' : isMonitored ? '⬇ Monitored' : ''}
+                              </span>
+                            )}
+                          </label>
+                        );
+                      })}
                   </div>
-                  <p className="season-note">
-                    {selectedSeasons.length === 0 
-                      ? "All seasons will be downloaded" 
-                      : `${selectedSeasons.length} season(s) selected`}
-                  </p>
+                  {!sonarrSeries && (
+                    <p className="season-note">
+                      {selectedSeasons.length === 0 
+                        ? "All seasons will be downloaded" 
+                        : `${selectedSeasons.length} season(s) selected`}
+                    </p>
+                  )}
+                  {sonarrSeries && (
+                    <p className="season-note">
+                      Select additional seasons to download
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -393,7 +485,7 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                   </button>
                 )}
                 
-                {!sonarrSeries && (
+                {!sonarrSeries ? (
                   <button 
                     className={`btn-download ${downloading ? 'downloading' : ''}`}
                     onClick={handleDownload}
@@ -401,10 +493,8 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                   >
                     {downloading ? 'Adding...' : '⬇ Download'}
                   </button>
-                )}
-                
-                {sonarrSeries && (
-                  <div className="download-status">
+                ) : (
+                  <div className="download-status-with-actions">
                     {queueItem ? (
                       <span className="status-downloading">
                         ⬇ Downloading... {queueItem.sizeleft && queueItem.size 
@@ -414,6 +504,13 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                     ) : (
                       <span className="status-monitored">✓ In Library</span>
                     )}
+                    <button 
+                      className={`btn-download-more ${downloading ? 'downloading' : ''}`}
+                      onClick={handleDownload}
+                      disabled={downloading}
+                    >
+                      {downloading ? 'Updating...' : '⬇ Download More Seasons'}
+                    </button>
                   </div>
                 )}
               </div>

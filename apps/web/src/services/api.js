@@ -346,6 +346,26 @@ export const sonarrApi = {
     }
   },
 
+  updateSeries: async (seriesData) => {
+    try {
+      const response = await fetch(`${API_URL}/api/sonarr/series`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(seriesData),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update series in Sonarr: ${errorText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating series in Sonarr:', error);
+      throw error;
+    }
+  },
+
   getQueue: async (page = 1, pageSize = 50) => {
     try {
       const response = await fetch(

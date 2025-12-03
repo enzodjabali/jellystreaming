@@ -138,17 +138,19 @@ type SonarrSeries struct {
 }
 
 type SonarrAddSeriesRequest struct {
+	Id               int                    `json:"id,omitempty"`
 	Title            string                 `json:"title"`
 	QualityProfileId int                    `json:"qualityProfileId"`
 	TitleSlug        string                 `json:"titleSlug"`
 	Images           []map[string]string    `json:"images"`
 	TvdbId           int                    `json:"tvdbId"`
 	Year             int                    `json:"year"`
+	Path             string                 `json:"path,omitempty"`
 	RootFolderPath   string                 `json:"rootFolderPath"`
 	Monitored        bool                   `json:"monitored"`
 	SeasonFolder     bool                   `json:"seasonFolder"`
 	Seasons          []SonarrSeason         `json:"seasons"`
-	AddOptions       map[string]interface{} `json:"addOptions"`
+	AddOptions       map[string]interface{} `json:"addOptions,omitempty"`
 }
 
 type SonarrQueueItem struct {
@@ -896,10 +898,12 @@ func seriesHandler(w http.ResponseWriter, r *http.Request) {
 
 // Sonarr Handlers
 func sonarrAddSeriesHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
+	if r.Method != "POST" && r.Method != "PUT" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	isUpdate := r.Method == "PUT"
 
 	var req SonarrAddSeriesRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -930,7 +934,12 @@ func sonarrAddSeriesHandler(w http.ResponseWriter, r *http.Request) {
 	sonarrURL := fmt.Sprintf("%s/api/v3/series", config.SonarrURL)
 	client := &http.Client{Timeout: 30 * time.Second}
 
-	httpReq, err := http.NewRequest("POST", sonarrURL, bytes.NewBuffer(jsonData))
+	method := "POST"
+	if isUpdate {
+		method = "PUT"
+	}
+
+	httpReq, err := http.NewRequest(method, sonarrURL, bytes.NewBuffer(jsonData))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error creating request: %v", err), http.StatusInternalServerError)
 		return
