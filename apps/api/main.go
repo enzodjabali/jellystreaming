@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -40,6 +41,53 @@ type Config struct {
 	ParentID       string
 	Port           string
 	TMDBToken      string
+	RadarrURL      string
+	RadarrAPIKey   string
+}
+
+type RadarrAddMovieRequest struct {
+	Title            string                 `json:"title"`
+	QualityProfileId int                    `json:"qualityProfileId"`
+	TitleSlug        string                 `json:"titleSlug"`
+	Images           []map[string]string    `json:"images"`
+	TmdbId           int                    `json:"tmdbId"`
+	Year             int                    `json:"year"`
+	RootFolderPath   string                 `json:"rootFolderPath"`
+	Monitored        bool                   `json:"monitored"`
+	AddOptions       map[string]interface{} `json:"addOptions"`
+}
+
+type RadarrQueueItem struct {
+	MovieId                 int                      `json:"movieId"`
+	Title                   string                   `json:"title"`
+	Status                  string                   `json:"status"`
+	TrackedDownloadStatus   string                   `json:"trackedDownloadStatus"`
+	TrackedDownloadState    string                   `json:"trackedDownloadState"`
+	StatusMessages          []map[string]interface{} `json:"statusMessages"`
+	Size                    int64                    `json:"size"`
+	Sizeleft                int64                    `json:"sizeleft"`
+	Timeleft                string                   `json:"timeleft"`
+	EstimatedCompletionTime string                   `json:"estimatedCompletionTime"`
+	Protocol                string                   `json:"protocol"`
+	DownloadClient          string                   `json:"downloadClient"`
+	Id                      int                      `json:"id"`
+}
+
+type RadarrQueueResponse struct {
+	Page         int               `json:"page"`
+	PageSize     int               `json:"pageSize"`
+	TotalRecords int               `json:"totalRecords"`
+	Records      []RadarrQueueItem `json:"records"`
+}
+
+type RadarrMovie struct {
+	Id          int    `json:"id"`
+	Title       string `json:"title"`
+	TmdbId      int    `json:"tmdbId"`
+	Monitored   bool   `json:"monitored"`
+	HasFile     bool   `json:"hasFile"`
+	IsAvailable bool   `json:"isAvailable"`
+	Status      string `json:"status,omitempty"`
 }
 
 var config Config
@@ -52,6 +100,8 @@ func init() {
 		ParentID:       getEnv("JELLYFIN_PARENT_ID", "db4c1708cbb5dd1676284a40f2950aba"),
 		Port:           getEnv("PORT", "8080"),
 		TMDBToken:      getEnv("TMDB_TOKEN", ""),
+		RadarrURL:      getEnv("RADARR_URL", "https://radarr.jellystreaming.ovh"),
+		RadarrAPIKey:   getEnv("RADARR_API_KEY", ""),
 	}
 }
 
@@ -493,6 +543,153 @@ func tmdbSearchHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
+// Radarr Handlers
+func radarrAddMovieHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req RadarrAddMovieRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Set default values if not provided
+	if req.QualityProfileId == 0 {
+		req.QualityProfileId = 1
+	}
+	if req.RootFolderPath == "" {
+		req.RootFolderPath = "/movies"
+	}
+	if req.AddOptions == nil {
+		req.AddOptions = map[string]interface{}{
+			"searchForMovie": true,
+		}
+	}
+	req.Monitored = true
+
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		http.Error(w, "Error encoding request", http.StatusInternalServerError)
+		return
+	}
+
+	radarrURL := fmt.Sprintf("%s/api/v3/movie", config.RadarrURL)
+	client := &http.Client{Timeout: 30 * time.Second}
+
+	httpReq, err := http.NewRequest("POST", radarrURL, io.NopCloser(bytes.NewReader(jsonData)))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error creating request: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	httpReq.Header.Set("X-Api-Key", config.RadarrAPIKey)
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error calling Radarr: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	log.Printf("Radarr add movie response status: %d", resp.StatusCode)
+	log.Printf("Radarr response body: %s", string(body))
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
+func radarrQueueHandler(w http.ResponseWriter, r *http.Request) {
+	page := r.URL.Query().Get("page")
+	if page == "" {
+		page = "1"
+	}
+	pageSize := r.URL.Query().Get("pageSize")
+	if pageSize == "" {
+		pageSize = "50"
+	}
+
+	radarrURL := fmt.Sprintf("%s/api/v3/queue?page=%s&pageSize=%s&sortDirection=ascending&sortKey=timeleft&includeUnknownMovieItems=true",
+		config.RadarrURL, page, pageSize)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest("GET", radarrURL, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error creating request: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	req.Header.Set("X-Api-Key", config.RadarrAPIKey)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error calling Radarr: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
+func radarrMoviesHandler(w http.ResponseWriter, r *http.Request) {
+	radarrURL := fmt.Sprintf("%s/api/v3/movie", config.RadarrURL)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest("GET", radarrURL, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error creating request: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	req.Header.Set("X-Api-Key", config.RadarrAPIKey)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error calling Radarr: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
+func radarrRootFoldersHandler(w http.ResponseWriter, r *http.Request) {
+	radarrURL := fmt.Sprintf("%s/api/v3/rootfolder", config.RadarrURL)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest("GET", radarrURL, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error creating request: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	req.Header.Set("X-Api-Key", config.RadarrAPIKey)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error calling Radarr: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
 func main() {
 	// Setup routes with CORS
 	http.HandleFunc("/api/jellyfin/movies", enableCORS(moviesHandler))
@@ -508,6 +705,12 @@ func main() {
 	http.HandleFunc("/api/tmdb/genres", enableCORS(tmdbGenresHandler))
 	http.HandleFunc("/api/tmdb/discover", enableCORS(tmdbDiscoverHandler))
 	http.HandleFunc("/api/tmdb/search", enableCORS(tmdbSearchHandler))
+
+	// Radarr routes
+	http.HandleFunc("/api/radarr/movie", enableCORS(radarrAddMovieHandler))
+	http.HandleFunc("/api/radarr/queue", enableCORS(radarrQueueHandler))
+	http.HandleFunc("/api/radarr/movies", enableCORS(radarrMoviesHandler))
+	http.HandleFunc("/api/radarr/rootfolders", enableCORS(radarrRootFoldersHandler))
 
 	// Root handler
 	http.HandleFunc("/", enableCORS(func(w http.ResponseWriter, r *http.Request) {
@@ -526,6 +729,10 @@ func main() {
 				"/api/tmdb/genres":            "GET - Get movie genres from TMDB",
 				"/api/tmdb/discover":          "GET - Discover movies from TMDB",
 				"/api/tmdb/search":            "GET - Search movies from TMDB (requires ?query=)",
+				"/api/radarr/movie":           "POST - Add movie to Radarr",
+				"/api/radarr/queue":           "GET - Get Radarr download queue",
+				"/api/radarr/movies":          "GET - Get all movies in Radarr",
+				"/api/radarr/rootfolders":     "GET - Get Radarr root folders",
 			},
 		})
 	}))

@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { tmdbApi, jellyfinApi } from '../services/api';
+import { tmdbApi, jellyfinApi, radarrApi } from '../services/api';
 import '../styles/MovieModal.css';
 
 const MovieModal = ({ movie, onClose, onPlay }) => {
   const [jellyfinMovie, setJellyfinMovie] = useState(null);
   const [checkingJellyfin, setCheckingJellyfin] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -100,6 +102,51 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
     alert('Add to list functionality to be implemented');
   };
 
+  const handleDownload = async () => {
+    try {
+      setDownloading(true);
+      
+      // Get root folders to use the first one
+      const rootFolders = await radarrApi.getRootFolders();
+      const rootFolderPath = rootFolders && rootFolders.length > 0 
+        ? rootFolders[0].path 
+        : '/movies';
+
+      // Prepare movie data for Radarr
+      const radarrMovieData = {
+        title: movie.title || movie.name,
+        qualityProfileId: 1, // Default quality profile
+        titleSlug: movie.title ? movie.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'unknown',
+        images: movie.poster_path ? [{
+          coverType: 'poster',
+          url: tmdbApi.getImageUrl(movie.poster_path, 'original')
+        }] : [],
+        tmdbId: movie.id,
+        year: movie.release_date ? new Date(movie.release_date).getFullYear() : 0,
+        rootFolderPath: rootFolderPath,
+        monitored: true,
+        addOptions: {
+          searchForMovie: true
+        }
+      };
+
+      await radarrApi.addMovie(radarrMovieData);
+      setDownloadSuccess(true);
+      
+      // Show success message
+      setTimeout(() => {
+        setDownloadSuccess(false);
+      }, 3000);
+      
+      console.log('Movie added to Radarr successfully');
+    } catch (error) {
+      console.error('Error adding movie to Radarr:', error);
+      alert('Failed to add movie to download queue. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
@@ -177,13 +224,33 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
                 Watch Now
               </button>
             ) : (
-              <button className="btn btn-secondary btn-large" onClick={() => alert('Download functionality coming soon!')}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7 10 12 15 17 10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                Download
+              <button 
+                className="btn btn-secondary btn-large" 
+                onClick={handleDownload}
+                disabled={downloading || downloadSuccess}
+              >
+                {downloading ? (
+                  <>
+                    <div className="btn-spinner"></div>
+                    Adding to queue...
+                  </>
+                ) : downloadSuccess ? (
+                  <>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Added to queue!
+                  </>
+                ) : (
+                  <>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="7 10 12 15 17 10"/>
+                      <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download
+                  </>
+                )}
               </button>
             )}
           </div>

@@ -140,3 +140,83 @@ export const jellyfinApi = {
     return `${config.jellyfinUrl}/Items/${movieId}/Images/Backdrop?api_key=${config.apiKey}`;
   },
 };
+
+// Radarr API Functions
+export const radarrApi = {
+  addMovie: async (movieData) => {
+    try {
+      const response = await fetch(`${API_URL}/api/radarr/movie`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(movieData),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to add movie to Radarr: ${errorText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error adding movie to Radarr:', error);
+      throw error;
+    }
+  },
+
+  getQueue: async (page = 1, pageSize = 50) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/radarr/queue?page=${page}&pageSize=${pageSize}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch Radarr queue');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching Radarr queue:', error);
+      throw error;
+    }
+  },
+
+  getMovies: async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/radarr/movies`);
+      if (!response.ok) throw new Error('Failed to fetch Radarr movies');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching Radarr movies:', error);
+      throw error;
+    }
+  },
+
+  getRootFolders: async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/radarr/rootfolders`);
+      if (!response.ok) throw new Error('Failed to fetch Radarr root folders');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching Radarr root folders:', error);
+      throw error;
+    }
+  },
+
+  getMovieStatus: (radarrMovies, tmdbId) => {
+    const movie = radarrMovies.find(m => m.tmdbId === tmdbId);
+    if (!movie) {
+      return { status: 'not_in_radarr', label: 'Not in library', monitored: false, hasFile: false };
+    }
+    
+    if (movie.hasFile && movie.monitored) {
+      return { status: 'downloaded_monitored', label: 'Téléchargé (surveillé)', monitored: true, hasFile: true };
+    }
+    if (movie.hasFile && !movie.monitored) {
+      return { status: 'downloaded_unmonitored', label: 'Téléchargé (non surveillé)', monitored: false, hasFile: true };
+    }
+    if (!movie.hasFile && movie.monitored) {
+      return { status: 'missing_monitored', label: 'Manquant (surveillé)', monitored: true, hasFile: false };
+    }
+    if (!movie.hasFile && !movie.monitored) {
+      return { status: 'missing_unmonitored', label: 'Manquant (non surveillé)', monitored: false, hasFile: false };
+    }
+    
+    return { status: 'unknown', label: 'État inconnu', monitored: movie.monitored, hasFile: movie.hasFile };
+  },
+};
