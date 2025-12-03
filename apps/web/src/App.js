@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import MyMovies from './pages/MyMovies';
+import Search from './pages/Search';
 import './App.css';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/movies" element={<MyMovies />} />
+          <Route path="/search" element={<Search />} />
         </Routes>
       </div>
     </Router>

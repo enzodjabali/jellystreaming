@@ -30,6 +30,11 @@ const Navbar = () => {
             </Link>
           </li>
           <li>
+            <Link to="/search" className={isActive('/search') ? 'active' : ''}>
+              Search
+            </Link>
+          </li>
+          <li>
             <Link to="/movies" className={isActive('/movies') ? 'active' : ''}>
               Movies
             </Link>
