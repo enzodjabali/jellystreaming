@@ -64,10 +64,16 @@ const Search = () => {
     try {
       setIsSearching(true);
       
-      // Search both movies and TV shows
+      // Search both movies and TV shows with individual error handling
       const [moviesData, tvData] = await Promise.all([
-        tmdbApi.searchMovies(searchQuery),
-        tmdbTVApi.searchTV(searchQuery)
+        tmdbApi.searchMovies(searchQuery).catch(err => {
+          console.error('Error searching movies:', err);
+          return { results: [] };
+        }),
+        tmdbTVApi.searchTV(searchQuery).catch(err => {
+          console.error('Error searching TV shows:', err);
+          return { results: [] };
+        })
       ]);
       
       setMovieResults(moviesData.results || []);
@@ -229,21 +235,15 @@ const Search = () => {
                       className="suggestion-item"
                       onClick={() => handleMovieClick(movie)}
                     >
-                      <div className="suggestion-poster">
-                        {movie.poster_path ? (
+                      {movie.poster_path && (
+                        <div className="suggestion-poster">
                           <img
                             src={tmdbApi.getImageUrl(movie.poster_path, 'w92')}
                             alt={movie.title}
                             loading="lazy"
                           />
-                        ) : (
-                          <div className="no-poster">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L8.5 17h11l-3.54-4.71z"/>
-                            </svg>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                       <div className="suggestion-info">
                         <h3 className="suggestion-title">{movie.title}</h3>
                         <div className="suggestion-meta">
@@ -275,21 +275,15 @@ const Search = () => {
                       className="suggestion-item"
                       onClick={() => handleSeriesClick(series)}
                     >
-                      <div className="suggestion-poster">
-                        {series.poster_path ? (
+                      {series.poster_path && (
+                        <div className="suggestion-poster">
                           <img
                             src={tmdbTVApi.getImageUrl(series.poster_path, 'w92')}
                             alt={series.name}
                             loading="lazy"
                           />
-                        ) : (
-                          <div className="no-poster">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L8.5 17h11l-3.54-4.71z"/>
-                            </svg>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                       <div className="suggestion-info">
                         <h3 className="suggestion-title">{series.name}</h3>
                         <div className="suggestion-meta">

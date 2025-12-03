@@ -1,4 +1,4 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const API_URL = process.env.REACT_APP_API_URL || '';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
 // TMDB API Functions

@@ -3,6 +3,9 @@
   min-height: 100vh;
   padding: 100px 50px 50px;
   background-color: #141414;
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
 }
 
 .search-container {
@@ -178,21 +181,25 @@
   overflow: hidden;
   background-color: rgba(255, 255, 255, 0.05);
   margin-right: 15px;
+  flex-shrink: 0;
 }
 
 .suggestion-poster img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .no-poster {
-  width: 100%;
-  height: 100%;
+  width: 60px;
+  height: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
 }
 
 .suggestion-info {

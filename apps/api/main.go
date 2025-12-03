@@ -613,7 +613,8 @@ func tmdbSearchHandler(w http.ResponseWriter, r *http.Request) {
 		page = "1"
 	}
 
-	tmdbURL := fmt.Sprintf("https://api.themoviedb.org/3/search/movie?query=%s&language=en-US&page=%s", query, page)
+	encodedQuery := url.QueryEscape(query)
+	tmdbURL := fmt.Sprintf("https://api.themoviedb.org/3/search/movie?query=%s&language=en-US&page=%s", encodedQuery, page)
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	req, _ := http.NewRequest("GET", tmdbURL, nil)
@@ -1245,7 +1246,8 @@ func tmdbTVSearchHandler(w http.ResponseWriter, r *http.Request) {
 		page = "1"
 	}
 
-	tmdbURL := fmt.Sprintf("https://api.themoviedb.org/3/search/tv?query=%s&language=en-US&page=%s", query, page)
+	encodedQuery := url.QueryEscape(query)
+	tmdbURL := fmt.Sprintf("https://api.themoviedb.org/3/search/tv?query=%s&language=en-US&page=%s", encodedQuery, page)
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	req, _ := http.NewRequest("GET", tmdbURL, nil)
