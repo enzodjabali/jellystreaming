@@ -1,9 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { tmdbApi } from '../services/api';
 import '../styles/MovieCarousel.css';
 
-const MovieCarousel = ({ title, movies, onMovieClick }) => {
+const MovieCarousel = ({ title, movies, onMovieClick, onLoadMore, hasMore, loading }) => {
   const carouselRef = useRef(null);
+  const [isNearEnd, setIsNearEnd] = useState(false);
 
   const scrollCarousel = (direction) => {
     if (carouselRef.current) {
@@ -14,6 +15,30 @@ const MovieCarousel = ({ title, movies, onMovieClick }) => {
       });
     }
   };
+
+  // Check if user scrolled near the end
+  const handleScroll = () => {
+    if (!carouselRef.current || !onLoadMore || loading) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
+    const scrollPercentage = (scrollLeft + clientWidth) / scrollWidth;
+
+    // If scrolled past 80% and not already loading
+    if (scrollPercentage > 0.8 && hasMore && !isNearEnd) {
+      setIsNearEnd(true);
+      onLoadMore();
+    } else if (scrollPercentage <= 0.8) {
+      setIsNearEnd(false);
+    }
+  };
+
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (carousel && onLoadMore) {
+      carousel.addEventListener('scroll', handleScroll);
+      return () => carousel.removeEventListener('scroll', handleScroll);
+    }
+  }, [onLoadMore, loading, hasMore, isNearEnd]);
 
   return (
     <section className="content-row">
@@ -51,6 +76,12 @@ const MovieCarousel = ({ title, movies, onMovieClick }) => {
               </div>
             </div>
           ))}
+          {loading && (
+            <div className="carousel-loading">
+              <div className="spinner"></div>
+              <p>Loading more...</p>
+            </div>
+          )}
         </div>
         <button 
           className="carousel-btn next" 
