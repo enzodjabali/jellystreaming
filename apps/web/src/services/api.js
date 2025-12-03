@@ -95,7 +95,7 @@ export const tmdbApi = {
 export const jellyfinApi = {
   getMovies: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/movies`);
+      const response = await fetch(`${API_URL}/api/jellyfin/movies`);
       if (!response.ok) throw new Error('Failed to fetch movies');
       const data = await response.json();
       return data.Items || [];
@@ -119,7 +119,7 @@ export const jellyfinApi = {
   searchMovie: async (title) => {
     try {
       const response = await fetch(
-        `${API_URL}/api/movies/search?title=${encodeURIComponent(title)}`
+        `${API_URL}/api/jellyfin/movies/search?title=${encodeURIComponent(title)}`
       );
       if (!response.ok) throw new Error('Failed to search movie');
       const data = await response.json();

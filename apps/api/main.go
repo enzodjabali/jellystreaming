@@ -495,9 +495,9 @@ func tmdbSearchHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Setup routes with CORS
-	http.HandleFunc("/api/movies", enableCORS(moviesHandler))
+	http.HandleFunc("/api/jellyfin/movies", enableCORS(moviesHandler))
 	http.HandleFunc("/api/config", enableCORS(configHandler))
-	http.HandleFunc("/api/movies/search", enableCORS(searchMovieHandler))
+	http.HandleFunc("/api/jellyfin/movies/search", enableCORS(searchMovieHandler))
 	http.HandleFunc("/health", enableCORS(healthHandler))
 
 	// TMDB proxy routes
@@ -516,16 +516,16 @@ func main() {
 			"message": "JellyStreaming API",
 			"version": "2.0.0",
 			"endpoints": map[string]string{
-				"/api/movies":        "GET - Fetch movies from Jellyfin",
-				"/api/movies/search": "GET - Search movie in Jellyfin (requires ?title=)",
-				"/api/config":        "GET - Get Jellyfin configuration",
-				"/health":            "GET - Health check",
-				"/api/tmdb/trending": "GET - Get trending movies from TMDB",
-				"/api/tmdb/popular":  "GET - Get popular movies from TMDB",
-				"/api/tmdb/movie":    "GET - Get movie details from TMDB (requires ?id=)",
-				"/api/tmdb/genres":   "GET - Get movie genres from TMDB",
-				"/api/tmdb/discover": "GET - Discover movies from TMDB",
-				"/api/tmdb/search":   "GET - Search movies from TMDB (requires ?query=)",
+				"/api/jellyfin/movies":        "GET - Fetch movies from Jellyfin",
+				"/api/jellyfin/movies/search": "GET - Search movie in Jellyfin (requires ?title=)",
+				"/api/config":                 "GET - Get Jellyfin configuration",
+				"/health":                     "GET - Health check",
+				"/api/tmdb/trending":          "GET - Get trending movies from TMDB",
+				"/api/tmdb/popular":           "GET - Get popular movies from TMDB",
+				"/api/tmdb/movie":             "GET - Get movie details from TMDB (requires ?id=)",
+				"/api/tmdb/genres":            "GET - Get movie genres from TMDB",
+				"/api/tmdb/discover":          "GET - Discover movies from TMDB",
+				"/api/tmdb/search":            "GET - Search movies from TMDB (requires ?query=)",
 			},
 		})
 	}))
