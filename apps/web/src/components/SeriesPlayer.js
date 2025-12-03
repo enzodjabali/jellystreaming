@@ -12,6 +12,14 @@ const SeriesPlayer = ({ series, onClose }) => {
   const [episodes, setEpisodes] = useState([]);
   const [selectedEpisode, setSelectedEpisode] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [quality, setQuality] = useState('auto');
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [audioTracks, setAudioTracks] = useState([]);
+  const [subtitleTracks, setSubtitleTracks] = useState([]);
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState(null);
+  const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState(-1);
+  const [tracksLoaded, setTracksLoaded] = useState(false);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -84,6 +92,69 @@ const SeriesPlayer = ({ series, onClose }) => {
     fetchEpisodes();
   }, [config, selectedSeason, series]);
 
+  // Fetch audio and subtitle tracks for selected episode
+  useEffect(() => {
+    const fetchMediaStreams = async () => {
+      if (!config || !selectedEpisode) return;
+
+      try {
+        setTracksLoaded(false);
+        console.log('Fetching media streams for episode:', selectedEpisode.Id);
+        const response = await fetch(
+          `${config.jellyfinUrl}/Items/${selectedEpisode.Id}/PlaybackInfo?UserId=${config.userId}&api_key=${config.apiKey}`
+        );
+        const data = await response.json();
+        
+        if (data.MediaSources && data.MediaSources.length > 0) {
+          const mediaSource = data.MediaSources[0];
+          
+          // Extract audio tracks
+          const audio = mediaSource.MediaStreams.filter(s => s.Type === 'Audio').map((stream, index) => ({
+            index: stream.Index,
+            displayIndex: index,
+            language: stream.Language || 'Unknown',
+            displayTitle: stream.DisplayTitle || `Audio ${index + 1}`,
+            codec: stream.Codec,
+            channels: stream.Channels,
+            isDefault: stream.IsDefault
+          }));
+          
+          // Extract subtitle tracks with "Off" option
+          const subtitles = [
+            { index: -1, displayIndex: -1, language: 'Off', displayTitle: 'Off', isDefault: true }
+          ].concat(
+            mediaSource.MediaStreams.filter(s => s.Type === 'Subtitle').map((stream, index) => ({
+              index: stream.Index,
+              displayIndex: index,
+              language: stream.Language || 'Unknown',
+              displayTitle: stream.DisplayTitle || `Subtitle ${index + 1}`,
+              codec: stream.Codec,
+              isDefault: false
+            }))
+          );
+          
+          setAudioTracks(audio);
+          setSubtitleTracks(subtitles);
+          
+          // Set default tracks
+          const defaultAudio = audio.find(a => a.isDefault) || audio[0];
+          if (defaultAudio) {
+            setSelectedAudioTrack(defaultAudio.index);
+          }
+          
+          setSelectedSubtitleTrack(-1);
+        }
+        
+        setTracksLoaded(true);
+      } catch (error) {
+        console.error('Error fetching media streams:', error);
+        setTracksLoaded(true);
+      }
+    };
+    
+    fetchMediaStreams();
+  }, [selectedEpisode, config]);
+
   const handleEscape = (e) => {
     if (e.key === 'Escape') {
       onClose();
@@ -100,11 +171,23 @@ const SeriesPlayer = ({ series, onClose }) => {
     };
   }, []);
 
-  const getStreamUrl = (episode) => {
+  const getQualityBitrate = (qualityLevel) => {
+    const bitrates = {
+      'auto': '20000000',
+      '1080p': '10000000',
+      '720p': '5000000',
+      '480p': '2500000',
+      '360p': '1000000',
+      '240p': '500000'
+    };
+    return bitrates[qualityLevel] || bitrates['auto'];
+  };
+
+  const getStreamUrl = (episode, qualityLevel = quality) => {
     if (!config || !episode) return '';
     
     const deviceId = 'jellystreaming-web-' + Date.now();
-    const videoBitrate = '10000000'; // 10 Mbps
+    const videoBitrate = getQualityBitrate(qualityLevel);
     
     const paramsObj = {
       'api_key': config.apiKey,
@@ -125,13 +208,24 @@ const SeriesPlayer = ({ series, onClose }) => {
       'MinSegments': '1',
       'BreakOnNonKeyFrames': 'false',
       
-      'EnableAutoStreamCopy': 'true',
-      'AllowVideoStreamCopy': 'true',
+      'EnableAutoStreamCopy': qualityLevel === 'auto' ? 'true' : 'false',
+      'AllowVideoStreamCopy': qualityLevel === 'auto' ? 'true' : 'false',
       'AllowAudioStreamCopy': 'true',
       
       'SegmentLength': '3',
       'TranscodeReasons': 'ContainerNotSupported'
     };
+    
+    // Add audio track index if available
+    if (selectedAudioTrack !== null && selectedAudioTrack !== undefined) {
+      paramsObj['AudioStreamIndex'] = selectedAudioTrack;
+    }
+    
+    // Add subtitle track if enabled
+    if (selectedSubtitleTrack !== null && selectedSubtitleTrack !== -1) {
+      paramsObj['SubtitleStreamIndex'] = selectedSubtitleTrack;
+      paramsObj['SubtitleMethod'] = 'Encode';
+    }
     
     const params = new URLSearchParams(paramsObj);
     return `${config.jellyfinUrl}/videos/${episode.Id}/master.m3u8?${params.toString()}`;
@@ -146,13 +240,78 @@ const SeriesPlayer = ({ series, onClose }) => {
     setSelectedEpisode(episode);
   };
 
+  const handleQualityChange = (newQuality) => {
+    setQuality(newQuality);
+    setShowSettings(false);
+    
+    const currentTime = videoRef.current?.currentTime || 0;
+    
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+    }
+    
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = currentTime;
+      }
+    }, 100);
+  };
+
+  const handleSpeedChange = (speed) => {
+    setPlaybackSpeed(speed);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = speed;
+    }
+  };
+
+  const handleAudioTrackChange = (trackIndex) => {
+    setSelectedAudioTrack(trackIndex);
+    setShowSettings(false);
+    
+    const currentTime = videoRef.current?.currentTime || 0;
+    
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+    }
+    
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = currentTime;
+      }
+    }, 100);
+  };
+
+  const handleSubtitleTrackChange = (trackIndex) => {
+    setSelectedSubtitleTrack(trackIndex);
+    setShowSettings(false);
+    
+    const currentTime = videoRef.current?.currentTime || 0;
+    
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+    }
+    
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = currentTime;
+      }
+    }, 100);
+  };
+
+  // Handle playback speed changes
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = playbackSpeed;
+    }
+  }, [playbackSpeed]);
+
   // Initialize HLS for the selected episode
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !selectedEpisode || !config) return;
+    if (!video || !selectedEpisode || !config || !tracksLoaded) return;
 
     const streamUrl = getStreamUrl(selectedEpisode);
-    console.log('Initializing HLS stream for episode:', selectedEpisode.Name, streamUrl);
+    console.log('Initializing HLS stream for episode:', selectedEpisode.Name);
 
     // Destroy previous HLS instance if it exists
     if (hlsRef.current) {
@@ -195,6 +354,26 @@ const SeriesPlayer = ({ series, onClose }) => {
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log('HLS manifest parsed for episode:', selectedEpisode.Name);
+        
+        // Enable subtitles if selected
+        if (selectedSubtitleTrack !== null && selectedSubtitleTrack !== -1) {
+          setTimeout(() => {
+            if (video.textTracks && video.textTracks.length > 0) {
+              for (let i = 0; i < video.textTracks.length; i++) {
+                video.textTracks[i].mode = 'showing';
+              }
+            }
+          }, 500);
+        } else {
+          setTimeout(() => {
+            if (video.textTracks && video.textTracks.length > 0) {
+              for (let i = 0; i < video.textTracks.length; i++) {
+                video.textTracks[i].mode = 'hidden';
+              }
+            }
+          }, 500);
+        }
+        
         video.play().catch(err => {
           console.warn('Autoplay blocked, user interaction required');
         });
@@ -248,7 +427,7 @@ const SeriesPlayer = ({ series, onClose }) => {
     } else {
       console.error('HLS is not supported in this browser');
     }
-  }, [selectedEpisode, config]);
+  }, [selectedEpisode, config, quality, selectedAudioTrack, selectedSubtitleTrack, tracksLoaded]);
 
   if (loading || !config) {
     return (
@@ -264,6 +443,86 @@ const SeriesPlayer = ({ series, onClose }) => {
     <div className="video-player-overlay">
       <div className="video-player-container series-player">
         <button className="close-player" onClick={onClose}>×</button>
+        
+        <button 
+          className="settings-button" 
+          onClick={() => setShowSettings(!showSettings)}
+          title="Settings"
+        >
+          ⚙️
+        </button>
+
+        {showSettings && (
+          <div className="settings-panel">
+            <div className="settings-section">
+              <h3>Quality</h3>
+              <div className="settings-options">
+                {['auto', '1080p', '720p', '480p', '360p', '240p'].map((q) => (
+                  <button
+                    key={q}
+                    className={`settings-option ${quality === q ? 'active' : ''}`}
+                    onClick={() => handleQualityChange(q)}
+                  >
+                    {q === 'auto' ? 'Auto' : q}
+                    {quality === q && ' ✓'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="settings-section">
+              <h3>Playback Speed</h3>
+              <div className="settings-options">
+                {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
+                  <button
+                    key={speed}
+                    className={`settings-option ${playbackSpeed === speed ? 'active' : ''}`}
+                    onClick={() => handleSpeedChange(speed)}
+                  >
+                    {speed}x
+                    {playbackSpeed === speed && ' ✓'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {audioTracks.length > 0 && (
+              <div className="settings-section">
+                <h3>Audio</h3>
+                <div className="settings-options">
+                  {audioTracks.map((track) => (
+                    <button
+                      key={track.index}
+                      className={`settings-option ${selectedAudioTrack === track.index ? 'active' : ''}`}
+                      onClick={() => handleAudioTrackChange(track.index)}
+                    >
+                      {track.displayTitle}
+                      {selectedAudioTrack === track.index && ' ✓'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {subtitleTracks.length > 0 && (
+              <div className="settings-section">
+                <h3>Subtitles</h3>
+                <div className="settings-options">
+                  {subtitleTracks.map((track) => (
+                    <button
+                      key={track.index}
+                      className={`settings-option ${selectedSubtitleTrack === track.index ? 'active' : ''}`}
+                      onClick={() => handleSubtitleTrackChange(track.index)}
+                    >
+                      {track.displayTitle}
+                      {selectedSubtitleTrack === track.index && ' ✓'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="series-player-header">
           <h2>{series.Name}</h2>
