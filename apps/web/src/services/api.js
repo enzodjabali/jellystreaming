@@ -141,6 +141,96 @@ export const jellyfinApi = {
   },
 };
 
+// Jellyfin TV Shows API Functions
+export const jellyfinTVApi = {
+  getSeries: async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/jellyfin/series`);
+      if (!response.ok) throw new Error('Failed to fetch TV shows');
+      const data = await response.json();
+      return data.Items || [];
+    } catch (error) {
+      console.error('Error fetching Jellyfin TV shows:', error);
+      throw error;
+    }
+  },
+
+  getImageUrl: (seriesId, config) => {
+    if (!config || !seriesId) return null;
+    return `${config.jellyfinUrl}/Items/${seriesId}/Images/Primary?api_key=${config.apiKey}`;
+  },
+
+  getBackdropUrl: (seriesId, config) => {
+    if (!config || !seriesId) return null;
+    return `${config.jellyfinUrl}/Items/${seriesId}/Images/Backdrop?api_key=${config.apiKey}`;
+  },
+};
+
+// TMDB TV Shows API Functions
+export const tmdbTVApi = {
+  getTrending: async (timeWindow = 'week', page = 1) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/tmdb/tv/trending?time_window=${timeWindow}&page=${page}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch trending TV shows');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching trending TV shows:', error);
+      throw error;
+    }
+  },
+
+  getPopular: async (page = 1) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/tmdb/tv/popular?page=${page}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch popular TV shows');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching popular TV shows:', error);
+      throw error;
+    }
+  },
+
+  getTVDetails: async (tvId) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/tmdb/tv?id=${tvId}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch TV show details');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching TV show details:', error);
+      throw error;
+    }
+  },
+
+  searchTV: async (query, page = 1) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/tmdb/tv/search?query=${encodeURIComponent(query)}&page=${page}`
+      );
+      if (!response.ok) throw new Error('Failed to search TV shows');
+      return await response.json();
+    } catch (error) {
+      console.error('Error searching TV shows:', error);
+      throw error;
+    }
+  },
+
+  getImageUrl: (path, size = 'w500') => {
+    if (!path) return null;
+    return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
+  },
+
+  getBackdropUrl: (path, size = 'w1280') => {
+    if (!path) return null;
+    return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
+  },
+};
+
 // Radarr API Functions
 export const radarrApi = {
   addMovie: async (movieData) => {
@@ -231,5 +321,89 @@ export const radarrApi = {
     }
     
     return { status: 'unknown', label: 'État inconnu', monitored: movie.monitored, hasFile: movie.hasFile };
+  },
+};
+
+// Sonarr API Functions
+export const sonarrApi = {
+  addSeries: async (seriesData) => {
+    try {
+      const response = await fetch(`${API_URL}/api/sonarr/series`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(seriesData),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to add series to Sonarr: ${errorText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error adding series to Sonarr:', error);
+      throw error;
+    }
+  },
+
+  getQueue: async (page = 1, pageSize = 50) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/sonarr/queue?page=${page}&pageSize=${pageSize}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch Sonarr queue');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching Sonarr queue:', error);
+      throw error;
+    }
+  },
+
+  getSeries: async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/sonarr/allseries`);
+      if (!response.ok) throw new Error('Failed to fetch Sonarr series');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching Sonarr series:', error);
+      throw error;
+    }
+  },
+  
+  refreshMonitoredDownloads: async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/sonarr/refresh`, {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error('Failed to refresh monitored downloads');
+      return await response.json();
+    } catch (error) {
+      console.error('Error refreshing monitored downloads:', error);
+      throw error;
+    }
+  },
+
+  getRootFolders: async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/sonarr/rootfolders`);
+      if (!response.ok) throw new Error('Failed to fetch Sonarr root folders');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching Sonarr root folders:', error);
+      throw error;
+    }
+  },
+
+  getSeriesStatus: (sonarrSeries, tvdbId) => {
+    const series = sonarrSeries.find(s => s.tvdbId === tvdbId);
+    if (!series) {
+      return { status: 'not_in_sonarr', label: 'Not in library', monitored: false };
+    }
+    
+    if (series.monitored) {
+      return { status: 'monitored', label: 'Surveillé', monitored: true };
+    }
+    
+    return { status: 'unmonitored', label: 'Non surveillé', monitored: false };
   },
 };

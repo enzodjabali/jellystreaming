@@ -40,6 +40,11 @@ const Navbar = () => {
             </Link>
           </li>
           <li>
+            <Link to="/tvshows" className={isActive('/tvshows') ? 'active' : ''}>
+              TV Shows
+            </Link>
+          </li>
+          <li>
             <Link to="/downloads" className={isActive('/downloads') ? 'active' : ''}>
               Downloads
             </Link>

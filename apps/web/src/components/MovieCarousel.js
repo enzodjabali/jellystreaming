@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { tmdbApi } from '../services/api';
+import { tmdbApi, tmdbTVApi } from '../services/api';
 import '../styles/MovieCarousel.css';
 
-const MovieCarousel = ({ title, movies, onMovieClick, onLoadMore, hasMore, loading }) => {
+const MovieCarousel = ({ title, movies, onMovieClick, onLoadMore, hasMore, loading, isTVShow = false }) => {
   const carouselRef = useRef(null);
   const [isNearEnd, setIsNearEnd] = useState(false);
 
@@ -52,30 +52,35 @@ const MovieCarousel = ({ title, movies, onMovieClick, onLoadMore, hasMore, loadi
           &lt;
         </button>
         <div className="carousel-container" ref={carouselRef}>
-          {movies.map((movie) => (
-            <div
-              key={movie.id}
-              className="card"
-              onClick={() => onMovieClick(movie)}
-            >
-              <img
-                src={tmdbApi.getImageUrl(movie.poster_path)}
-                alt={movie.title || movie.name}
-                loading="lazy"
-                onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/300x450/1a1a1a/fff?text=No+Image';
-                }}
-              />
-              <div className="card-info">
-                <h3 className="card-title">{movie.title || movie.name}</h3>
-                <div className="card-rating">
-                  {movie.vote_average > 0 && (
-                    <span>⭐ {movie.vote_average.toFixed(1)}</span>
-                  )}
+          {movies.map((movie) => {
+            const imageApi = isTVShow ? tmdbTVApi : tmdbApi;
+            const posterUrl = imageApi.getImageUrl(movie.poster_path);
+            
+            return (
+              <div
+                key={movie.id}
+                className="card"
+                onClick={() => onMovieClick(movie)}
+              >
+                <img
+                  src={posterUrl}
+                  alt={movie.title || movie.name}
+                  loading="lazy"
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/300x450/1a1a1a/fff?text=No+Image';
+                  }}
+                />
+                <div className="card-info">
+                  <h3 className="card-title">{movie.title || movie.name}</h3>
+                  <div className="card-rating">
+                    {movie.vote_average > 0 && (
+                      <span>⭐ {movie.vote_average.toFixed(1)}</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {loading && (
             <div className="carousel-loading">
               <div className="spinner"></div>

@@ -135,13 +135,41 @@
   margin-bottom: 16px;
 }
 
+.title-with-type {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
 .queue-item-title {
   font-size: 18px;
   font-weight: 600;
   color: #ffffff;
   margin: 0;
-  flex: 1;
   line-height: 1.4;
+}
+
+/* Type Badges */
+.type-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.type-movie {
+  background-color: rgba(229, 9, 20, 0.2);
+  color: #ff6b6b;
+  border: 1px solid rgba(229, 9, 20, 0.3);
+}
+
+.type-series {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 /* Status Badges */

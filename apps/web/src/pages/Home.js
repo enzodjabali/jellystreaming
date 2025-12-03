@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { tmdbApi, jellyfinApi } from '../services/api';
+import { tmdbApi, tmdbTVApi, jellyfinApi } from '../services/api';
 import MovieCarousel from '../components/MovieCarousel';
 import MovieModal from '../components/MovieModal';
+import SeriesModal from '../components/SeriesModal';
 import VideoPlayer from '../components/VideoPlayer';
+import SeriesPlayer from '../components/SeriesPlayer';
 import '../styles/Home.css';
 
 const Home = () => {
@@ -12,8 +14,12 @@ const Home = () => {
   const [actionMovies, setActionMovies] = useState([]);
   const [comedyMovies, setComedyMovies] = useState([]);
   const [horrorMovies, setHorrorMovies] = useState([]);
+  const [trendingTV, setTrendingTV] = useState([]);
+  const [popularTV, setPopularTV] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
+  const [selectedSeries, setSelectedSeries] = useState(null);
   const [playingMovie, setPlayingMovie] = useState(null);
+  const [playingSeries, setPlayingSeries] = useState(null);
   const [jellyfinConfig, setJellyfinConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [navScrolled, setNavScrolled] = useState(false);
@@ -24,6 +30,8 @@ const Home = () => {
   const [actionPage, setActionPage] = useState(1);
   const [comedyPage, setComedyPage] = useState(1);
   const [horrorPage, setHorrorPage] = useState(1);
+  const [trendingTVPage, setTrendingTVPage] = useState(1);
+  const [popularTVPage, setPopularTVPage] = useState(1);
 
   // Loading states for each carousel
   const [trendingLoading, setTrendingLoading] = useState(false);
@@ -31,6 +39,8 @@ const Home = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [comedyLoading, setComedyLoading] = useState(false);
   const [horrorLoading, setHorrorLoading] = useState(false);
+  const [trendingTVLoading, setTrendingTVLoading] = useState(false);
+  const [popularTVLoading, setPopularTVLoading] = useState(false);
 
   // Has more pages tracking (TMDB typically has max ~500 pages)
   const [trendingHasMore, setTrendingHasMore] = useState(true);
@@ -38,6 +48,8 @@ const Home = () => {
   const [actionHasMore, setActionHasMore] = useState(true);
   const [comedyHasMore, setComedyHasMore] = useState(true);
   const [horrorHasMore, setHorrorHasMore] = useState(true);
+  const [trendingTVHasMore, setTrendingTVHasMore] = useState(true);
+  const [popularTVHasMore, setPopularTVHasMore] = useState(true);
 
   useEffect(() => {
     fetchMovies();
@@ -88,8 +100,15 @@ const Home = () => {
       const horrorData = await tmdbApi.discoverMovies({ with_genres: 27, sort_by: 'popularity.desc' });
       setHorrorMovies(horrorData.results || []);
 
+      // Fetch TV shows
+      const trendingTVData = await tmdbTVApi.getTrending('week');
+      setTrendingTV(trendingTVData.results || []);
+
+      const popularTVData = await tmdbTVApi.getPopular();
+      setPopularTV(popularTVData.results || []);
+
     } catch (error) {
-      console.error('Error fetching movies:', error);
+      console.error('Error fetching content:', error);
     } finally {
       setLoading(false);
     }
@@ -104,8 +123,18 @@ const Home = () => {
     }
   };
 
+  const handleSeriesClick = async (series) => {
+    try {
+      const details = await tmdbTVApi.getTVDetails(series.id);
+      setSelectedSeries(details);
+    } catch (error) {
+      console.error('Error fetching series details:', error);
+    }
+  };
+
   const handleCloseModal = () => {
     setSelectedMovie(null);
+    setSelectedSeries(null);
   };
 
   const handlePlayMovie = (jellyfinMovie) => {
@@ -119,8 +148,18 @@ const Home = () => {
     }
   };
 
+  const handlePlaySeries = (jellyfinSeries) => {
+    if (jellyfinSeries) {
+      setPlayingSeries(jellyfinSeries);
+      setSelectedSeries(null);
+    } else {
+      alert('This series is not available in your library');
+    }
+  };
+
   const handleClosePlayer = () => {
     setPlayingMovie(null);
+    setPlayingSeries(null);
   };
 
   // Load more functions for infinite scroll
@@ -262,6 +301,56 @@ const Home = () => {
     }
   };
 
+  const loadMoreTrendingTV = async () => {
+    if (trendingTVLoading || !trendingTVHasMore) return;
+    
+    try {
+      setTrendingTVLoading(true);
+      const nextPage = trendingTVPage + 1;
+      const data = await tmdbTVApi.getTrending('week', nextPage);
+      
+      if (data.results && data.results.length > 0) {
+        setTrendingTV(prev => [...prev, ...data.results]);
+        setTrendingTVPage(nextPage);
+        
+        if (nextPage >= data.total_pages) {
+          setTrendingTVHasMore(false);
+        }
+      } else {
+        setTrendingTVHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading more trending TV shows:', error);
+    } finally {
+      setTrendingTVLoading(false);
+    }
+  };
+
+  const loadMorePopularTV = async () => {
+    if (popularTVLoading || !popularTVHasMore) return;
+    
+    try {
+      setPopularTVLoading(true);
+      const nextPage = popularTVPage + 1;
+      const data = await tmdbTVApi.getPopular(nextPage);
+      
+      if (data.results && data.results.length > 0) {
+        setPopularTV(prev => [...prev, ...data.results]);
+        setPopularTVPage(nextPage);
+        
+        if (nextPage >= data.total_pages) {
+          setPopularTVHasMore(false);
+        }
+      } else {
+        setPopularTVHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading more popular TV shows:', error);
+    } finally {
+      setPopularTVLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -277,6 +366,16 @@ const Home = () => {
       <VideoPlayer
         movie={playingMovie}
         config={jellyfinConfig}
+        onClose={handleClosePlayer}
+      />
+    );
+  }
+
+  // If playing a series, show the series player
+  if (playingSeries) {
+    return (
+      <SeriesPlayer
+        series={playingSeries}
         onClose={handleClosePlayer}
       />
     );
@@ -370,6 +469,30 @@ const Home = () => {
             loading={horrorLoading}
           />
         )}
+
+        {trendingTV.length > 0 && (
+          <MovieCarousel
+            title="Trending TV Shows"
+            movies={trendingTV}
+            onMovieClick={handleSeriesClick}
+            onLoadMore={loadMoreTrendingTV}
+            hasMore={trendingTVHasMore}
+            loading={trendingTVLoading}
+            isTVShow={true}
+          />
+        )}
+
+        {popularTV.length > 0 && (
+          <MovieCarousel
+            title="Popular TV Shows"
+            movies={popularTV}
+            onMovieClick={handleSeriesClick}
+            onLoadMore={loadMorePopularTV}
+            hasMore={popularTVHasMore}
+            loading={popularTVLoading}
+            isTVShow={true}
+          />
+        )}
       </div>
 
       {/* Movie Modal */}
@@ -378,6 +501,15 @@ const Home = () => {
           movie={selectedMovie}
           onClose={handleCloseModal}
           onPlay={handlePlayMovie}
+        />
+      )}
+
+      {/* Series Modal */}
+      {selectedSeries && (
+        <SeriesModal
+          series={selectedSeries}
+          onClose={handleCloseModal}
+          onPlay={handlePlaySeries}
         />
       )}
     </div>
