@@ -691,6 +691,51 @@ func radarrRootFoldersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
+func radarrRefreshHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Trigger RefreshMonitoredDownloads command in Radarr
+	radarrURL := fmt.Sprintf("%s/api/v3/command", config.RadarrURL)
+
+	commandBody := map[string]interface{}{
+		"name": "RefreshMonitoredDownloads",
+	}
+
+	jsonBody, err := json.Marshal(commandBody)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error creating request: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	req, err := http.NewRequest("POST", radarrURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error creating request: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	req.Header.Set("X-Api-Key", config.RadarrAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error calling Radarr: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
 func main() {
 	// Setup routes with CORS
 	http.HandleFunc("/api/jellyfin/movies", enableCORS(moviesHandler))
@@ -712,6 +757,7 @@ func main() {
 	http.HandleFunc("/api/radarr/queue", enableCORS(radarrQueueHandler))
 	http.HandleFunc("/api/radarr/movies", enableCORS(radarrMoviesHandler))
 	http.HandleFunc("/api/radarr/rootfolders", enableCORS(radarrRootFoldersHandler))
+	http.HandleFunc("/api/radarr/refresh", enableCORS(radarrRefreshHandler))
 
 	// Root handler
 	http.HandleFunc("/", enableCORS(func(w http.ResponseWriter, r *http.Request) {

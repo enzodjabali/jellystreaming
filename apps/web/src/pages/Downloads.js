@@ -9,14 +9,17 @@ const Downloads = () => {
 
   useEffect(() => {
     fetchQueue();
-    // Refresh every 10 seconds
-    const interval = setInterval(fetchQueue, 10000);
+    // Refresh every 5 seconds
+    const interval = setInterval(fetchQueue, 5000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchQueue = async () => {
     try {
       setError(null);
+      // Trigger Radarr to refresh download status first
+      await radarrApi.refreshMonitoredDownloads();
+      // Then fetch the updated queue
       const data = await radarrApi.getQueue();
       // Filter to only show downloading movies (not completed/importing)
       const activeDownloads = (data.records || []).filter(item => 

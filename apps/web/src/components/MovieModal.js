@@ -164,6 +164,9 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
     
     const pollQueue = async () => {
       try {
+        // Trigger Radarr to refresh download status
+        await radarrApi.refreshMonitoredDownloads();
+        
         // First, refresh the Radarr movie data to get updated hasFile status
         const radarrMovies = await radarrApi.getMovies();
         const updatedRadarrMovie = radarrMovies.find(m => m.id === radarrMovieIdRef.current);
@@ -236,11 +239,17 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
         // Check the queue
         const queue = await radarrApi.getQueue();
         const queueMatch = queue.records?.find(q => q.movieId === radarrMovieIdRef.current);
-        setQueueItem(queueMatch || null);
         
-        if (queueMatch && queueMatch.size > 0) {
-          const progress = ((queueMatch.size - queueMatch.sizeleft) / queueMatch.size) * 100;
-          setDownloadProgress(Math.max(0, Math.min(100, progress)));
+        // Always update queueItem to trigger re-render (create new object reference)
+        if (queueMatch) {
+          setQueueItem({ ...queueMatch });
+          
+          if (queueMatch.size > 0) {
+            const progress = ((queueMatch.size - queueMatch.sizeleft) / queueMatch.size) * 100;
+            setDownloadProgress(Math.max(0, Math.min(100, progress)));
+          }
+        } else {
+          setQueueItem(null);
         }
       } catch (error) {
         console.error('Error polling queue:', error);
