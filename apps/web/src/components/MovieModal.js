@@ -43,35 +43,55 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
           };
           
           const normalizedSearchTitle = normalizeTitle(movieTitle);
+          const movieYear = movie.release_date ? new Date(movie.release_date).getFullYear() : null;
           
-          // Try to find exact match first
-          let bestMatch = results.find(
-            m => m.Name.toLowerCase() === movieTitle.toLowerCase()
-          );
+          let bestMatch = null;
           
-          // If no exact match, try normalized matching
-          if (!bestMatch) {
+          // PRIORITY 1: Exact title + year match
+          if (movieYear) {
             bestMatch = results.find(
-              m => normalizeTitle(m.Name) === normalizedSearchTitle
+              m => m.ProductionYear === movieYear && 
+                   m.Name.toLowerCase() === movieTitle.toLowerCase()
             );
           }
           
-          // Also check by year if available
-          if (!bestMatch && movie.release_date) {
-            const movieYear = new Date(movie.release_date).getFullYear();
+          // PRIORITY 2: Normalized title + year match
+          if (!bestMatch && movieYear) {
+            bestMatch = results.find(
+              m => m.ProductionYear === movieYear && 
+                   normalizeTitle(m.Name) === normalizedSearchTitle
+            );
+          }
+          
+          // PRIORITY 3: Year match with partial title match
+          if (!bestMatch && movieYear) {
             bestMatch = results.find(
               m => m.ProductionYear === movieYear && 
                    normalizeTitle(m.Name).includes(normalizedSearchTitle.split(' ')[0])
             );
           }
           
-          // Fall back to first result if still no match
-          setJellyfinMovie(bestMatch || results[0]);
+          // PRIORITY 4: Exact title match (no year check) - only if no year available
+          if (!bestMatch && !movieYear) {
+            bestMatch = results.find(
+              m => m.Name.toLowerCase() === movieTitle.toLowerCase()
+            );
+          }
+          
+          // PRIORITY 5: Normalized title match (no year check) - only if no year available
+          if (!bestMatch && !movieYear) {
+            bestMatch = results.find(
+              m => normalizeTitle(m.Name) === normalizedSearchTitle
+            );
+          }
+          
+          // If we found a match, use it; otherwise, no match found
+          setJellyfinMovie(bestMatch || null);
           
           // Log for debugging
-          console.log('Search results for:', movieTitle);
+          console.log('Search results for:', movieTitle, movieYear ? `(${movieYear})` : '');
           console.log('Found movies:', results.map(m => ({ name: m.Name, year: m.ProductionYear })));
-          console.log('Best match:', bestMatch ? bestMatch.Name : 'Using first result');
+          console.log('Best match:', bestMatch ? `${bestMatch.Name} (${bestMatch.ProductionYear})` : 'No match found');
         } else {
           setJellyfinMovie(null);
         }
