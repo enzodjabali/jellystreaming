@@ -11,6 +11,8 @@ services:
       - JELLYFIN_PARENT_ID=${JELLYFIN_PARENT_ID}
       - JELLYFIN_API_KEY=${JELLYFIN_API_KEY}
       - TMDB_TOKEN=${TMDB_TOKEN}
+      - RADARR_URL=${RADARR_URL}
+      - RADARR_API_KEY=${RADARR_API_KEY}
       - PORT=${PORT}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]

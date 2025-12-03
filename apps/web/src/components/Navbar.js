@@ -39,6 +39,11 @@ const Navbar = () => {
               Movies
             </Link>
           </li>
+          <li>
+            <Link to="/downloads" className={isActive('/downloads') ? 'active' : ''}>
+              Downloads
+            </Link>
+          </li>
         </ul>
       </div>
     </nav>

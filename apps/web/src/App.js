@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import MyMovies from './pages/MyMovies';
 import Search from './pages/Search';
+import Downloads from './pages/Downloads';
 import './App.css';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/movies" element={<MyMovies />} />
           <Route path="/search" element={<Search />} />
+          <Route path="/downloads" element={<Downloads />} />
         </Routes>
       </div>
     </Router>
