@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import MovieList from './components/MovieList';
 import TrendingSection from './components/TrendingSection';
 import VideoPlayer from './components/VideoPlayer';
+import MovieDetails from './components/MovieDetails';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
@@ -14,6 +15,7 @@ function App() {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [config, setConfig] = useState(null);
   const [activeSection, setActiveSection] = useState('discover');
+  const [selectedMovieId, setSelectedMovieId] = useState(null);
 
   useEffect(() => {
     fetchConfig();
@@ -50,8 +52,22 @@ function App() {
     setSelectedMovie(movie);
   };
 
+  const handleJellyseerrMovieClick = (movieId) => {
+    setSelectedMovieId(movieId);
+  };
+
   const handleClosePlayer = () => {
     setSelectedMovie(null);
+  };
+
+  const handleBackFromDetails = () => {
+    setSelectedMovieId(null);
+  };
+
+  const handleWatchFromDetails = (movie) => {
+    // Close the movie details and open the video player
+    setSelectedMovieId(null);
+    setSelectedMovie(movie);
   };
 
   if (loading) {
@@ -91,10 +107,16 @@ function App() {
             config={config}
             onClose={handleClosePlayer}
           />
+        ) : selectedMovieId ? (
+          <MovieDetails 
+            movieId={selectedMovieId}
+            onBack={handleBackFromDetails}
+            onWatch={handleWatchFromDetails}
+          />
         ) : (
           <>
             {activeSection === 'discover' && (
-              <TrendingSection onMovieClick={handleMovieClick} />
+              <TrendingSection onMovieClick={handleJellyseerrMovieClick} />
             )}
             
             {activeSection === 'jellyfin' && (

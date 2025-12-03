@@ -1,0 +1,494 @@
+.movie-details-container {
+  position: relative;
+  min-height: 100vh;
+  background: #0f0f1e;
+  color: #fff;
+  padding-bottom: 40px;
+}
+
+.back-button {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+  background: rgba(15, 15, 30, 0.9);
+  border: 2px solid rgba(138, 109, 246, 0.5);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.back-button:hover {
+  background: rgba(138, 109, 246, 0.3);
+  border-color: #8a6df6;
+  transform: translateX(-5px);
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 24px;
+  color: #8a6df6;
+}
+
+.error-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80vh;
+  font-size: 18px;
+  color: #ff6b6b;
+}
+
+/* Backdrop */
+.movie-backdrop {
+  position: relative;
+  width: 100%;
+  height: 70vh;
+  overflow: hidden;
+}
+
+.movie-backdrop img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.backdrop-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(15, 15, 30, 0.3) 50%,
+    rgba(15, 15, 30, 0.9) 80%,
+    #0f0f1e 100%
+  );
+}
+
+/* Main Content */
+.movie-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.movie-header {
+  display: flex;
+  gap: 40px;
+  margin-top: -250px;
+  position: relative;
+  z-index: 2;
+  padding: 0 20px;
+}
+
+.movie-poster {
+  position: relative;
+  flex-shrink: 0;
+  width: 300px;
+}
+
+.movie-poster img {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.movie-poster .status-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Movie Info */
+.movie-info {
+  flex: 1;
+  padding-top: 100px;
+}
+
+.movie-title {
+  font-size: 48px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  line-height: 1.2;
+}
+
+.movie-year {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.movie-tagline {
+  font-size: 20px;
+  font-style: italic;
+  opacity: 0.8;
+  margin: 10px 0 20px 0;
+}
+
+.movie-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rating-badge {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.genres {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.genre-tag {
+  background: rgba(138, 109, 246, 0.2);
+  border: 1px solid rgba(138, 109, 246, 0.4);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 15px;
+  margin: 30px 0;
+}
+
+.btn-watch,
+.btn-request,
+.btn-trailer {
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-watch {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-watch:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(138, 109, 246, 0.4);
+}
+
+.btn-request {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.btn-request:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(245, 87, 108, 0.4);
+}
+
+.btn-request:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-trailer {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-trailer:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Overview */
+.movie-overview {
+  margin-top: 30px;
+}
+
+.movie-overview h3 {
+  font-size: 24px;
+  margin-bottom: 15px;
+}
+
+.movie-overview p {
+  font-size: 16px;
+  line-height: 1.7;
+  opacity: 0.9;
+  max-width: 800px;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.available {
+  background: rgba(40, 167, 69, 0.2);
+  border: 1px solid #28a745;
+  color: #28a745;
+}
+
+.status-badge.partially-available {
+  background: rgba(255, 193, 7, 0.2);
+  border: 1px solid #ffc107;
+  color: #ffc107;
+}
+
+.status-badge.processing {
+  background: rgba(0, 123, 255, 0.2);
+  border: 1px solid #007bff;
+  color: #007bff;
+}
+
+.status-badge.pending {
+  background: rgba(108, 117, 125, 0.2);
+  border: 1px solid #6c757d;
+  color: #6c757d;
+}
+
+/* Additional Info Sections */
+.movie-additional-info {
+  margin-top: 60px;
+  padding: 0 20px;
+}
+
+.info-section {
+  margin-bottom: 60px;
+}
+
+.info-section h2 {
+  font-size: 32px;
+  margin-bottom: 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Cast Grid */
+.cast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 20px;
+}
+
+.cast-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.cast-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(138, 109, 246, 0.3);
+}
+
+.cast-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.cast-info {
+  padding: 12px;
+}
+
+.cast-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.cast-character {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* Production Info */
+.production-info {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 30px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.production-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.production-item {
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.production-item strong {
+  color: #8a6df6;
+  display: block;
+  margin-bottom: 5px;
+}
+
+/* Recommendations Grid */
+.recommendations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+.recommendation-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.recommendation-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(138, 109, 246, 0.3);
+}
+
+.recommendation-card img {
+  width: 100%;
+  height: 270px;
+  object-fit: cover;
+}
+
+.recommendation-info {
+  padding: 12px;
+}
+
+.recommendation-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recommendation-rating {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.recommendation-card .status-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .movie-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: -150px;
+  }
+
+  .movie-poster {
+    width: 250px;
+  }
+
+  .movie-info {
+    padding-top: 20px;
+  }
+
+  .movie-title {
+    font-size: 36px;
+  }
+
+  .action-buttons {
+    justify-content: center;
+  }
+
+  .cast-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  .recommendations-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .movie-backdrop {
+    height: 50vh;
+  }
+
+  .movie-header {
+    margin-top: -100px;
+  }
+
+  .movie-poster {
+    width: 200px;
+  }
+
+  .movie-title {
+    font-size: 28px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-watch,
+  .btn-request,
+  .btn-trailer {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .cast-grid,
+  .recommendations-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+  }
+}

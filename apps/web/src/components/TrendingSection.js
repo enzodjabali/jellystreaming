@@ -49,14 +49,9 @@ const TrendingSection = ({ onMovieClick }) => {
   };
 
   const handleMediaClick = (media) => {
-    // Check if movie is available in Jellyfin
-    if (media.mediaInfo && media.mediaInfo.jellyfinMediaId) {
-      // Redirect to Jellyfin movie
-      const jellyfinUrl = media.mediaInfo.mediaUrl;
-      window.open(jellyfinUrl, '_blank');
-    } else {
-      // Show movie details or request option
-      alert(`${media.title || media.name} is not available yet. You can request it on Jellyseerr!`);
+    // Call the onMovieClick callback with the movie ID
+    if (onMovieClick) {
+      onMovieClick(media.id);
     }
   };
 
