@@ -26,6 +26,7 @@ type JellyfinMovie struct {
 	PrimaryImageAspectRatio float64           `json:"PrimaryImageAspectRatio"`
 	ImageTags               map[string]string `json:"ImageTags"`
 	BackdropImageTags       []string          `json:"BackdropImageTags"`
+	ProviderIds             map[string]string `json:"ProviderIds"`
 }
 
 type JellyfinResponse struct {
@@ -246,7 +247,7 @@ func searchMovieHandler(w http.ResponseWriter, r *http.Request) {
 	query.Set("SearchTerm", title)
 	query.Set("IncludeItemTypes", "Movie")
 	query.Set("Recursive", "true")
-	query.Set("Fields", "PrimaryImageAspectRatio,ProductionYear")
+	query.Set("Fields", "PrimaryImageAspectRatio,ProductionYear,ProviderIds")
 	query.Set("ImageTypeLimit", "1")
 	query.Set("EnableImageTypes", "Primary,Backdrop")
 	query.Set("ParentId", config.ParentID)
