@@ -38,6 +38,7 @@ type Config struct {
 	JellyfinAPIKey string
 	ParentID       string
 	Port           string
+	TMDBToken      string
 }
 
 var config Config
@@ -49,6 +50,7 @@ func init() {
 		JellyfinAPIKey: getEnv("JELLYFIN_API_KEY", ""),
 		ParentID:       getEnv("JELLYFIN_PARENT_ID", "db4c1708cbb5dd1676284a40f2950aba"),
 		Port:           getEnv("PORT", "8080"),
+		TMDBToken:      getEnv("TMDB_TOKEN", ""),
 	}
 }
 
@@ -166,11 +168,245 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// TMDB API Proxy Handlers
+func tmdbProxyHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get the TMDB endpoint from query params
+	endpoint := r.URL.Query().Get("endpoint")
+	if endpoint == "" {
+		http.Error(w, "Missing endpoint parameter", http.StatusBadRequest)
+		return
+	}
+
+	// Build TMDB API URL
+	tmdbURL := fmt.Sprintf("https://api.themoviedb.org/3%s", endpoint)
+
+	// Parse query parameters from original request
+	queryParams := r.URL.Query()
+	queryParams.Del("endpoint") // Remove our custom param
+
+	if len(queryParams) > 0 {
+		tmdbURL += "?" + queryParams.Encode()
+	}
+
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Create request
+	req, err := http.NewRequest("GET", tmdbURL, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error creating request: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Add TMDB authorization header
+	req.Header.Set("Authorization", "Bearer "+config.TMDBToken)
+	req.Header.Set("Accept", "application/json")
+
+	// Make request
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error making request: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error reading response: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Forward status code and response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
+// Specific TMDB endpoints for convenience
+func tmdbTrendingHandler(w http.ResponseWriter, r *http.Request) {
+	mediaType := r.URL.Query().Get("type")
+	if mediaType == "" {
+		mediaType = "movie"
+	}
+	timeWindow := r.URL.Query().Get("time_window")
+	if timeWindow == "" {
+		timeWindow = "week"
+	}
+
+	endpoint := fmt.Sprintf("/trending/%s/%s", mediaType, timeWindow)
+	tmdbURL := fmt.Sprintf("https://api.themoviedb.org/3%s?language=en-US", endpoint)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, _ := http.NewRequest("GET", tmdbURL, nil)
+	req.Header.Set("Authorization", "Bearer "+config.TMDBToken)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
+func tmdbPopularHandler(w http.ResponseWriter, r *http.Request) {
+	page := r.URL.Query().Get("page")
+	if page == "" {
+		page = "1"
+	}
+
+	tmdbURL := fmt.Sprintf("https://api.themoviedb.org/3/movie/popular?language=en-US&page=%s", page)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, _ := http.NewRequest("GET", tmdbURL, nil)
+	req.Header.Set("Authorization", "Bearer "+config.TMDBToken)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
+func tmdbMovieDetailsHandler(w http.ResponseWriter, r *http.Request) {
+	movieID := r.URL.Query().Get("id")
+	if movieID == "" {
+		http.Error(w, "Missing movie ID", http.StatusBadRequest)
+		return
+	}
+
+	tmdbURL := fmt.Sprintf("https://api.themoviedb.org/3/movie/%s?language=en-US&append_to_response=credits,videos,similar", movieID)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, _ := http.NewRequest("GET", tmdbURL, nil)
+	req.Header.Set("Authorization", "Bearer "+config.TMDBToken)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
+func tmdbGenresHandler(w http.ResponseWriter, r *http.Request) {
+	tmdbURL := "https://api.themoviedb.org/3/genre/movie/list?language=en-US"
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, _ := http.NewRequest("GET", tmdbURL, nil)
+	req.Header.Set("Authorization", "Bearer "+config.TMDBToken)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
+func tmdbDiscoverHandler(w http.ResponseWriter, r *http.Request) {
+	// Get query parameters
+	queryParams := r.URL.Query()
+	queryParams.Set("language", "en-US")
+
+	tmdbURL := fmt.Sprintf("https://api.themoviedb.org/3/discover/movie?%s", queryParams.Encode())
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, _ := http.NewRequest("GET", tmdbURL, nil)
+	req.Header.Set("Authorization", "Bearer "+config.TMDBToken)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
+func tmdbSearchHandler(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("query")
+	if query == "" {
+		http.Error(w, "Missing search query", http.StatusBadRequest)
+		return
+	}
+
+	page := r.URL.Query().Get("page")
+	if page == "" {
+		page = "1"
+	}
+
+	tmdbURL := fmt.Sprintf("https://api.themoviedb.org/3/search/movie?query=%s&language=en-US&page=%s", query, page)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, _ := http.NewRequest("GET", tmdbURL, nil)
+	req.Header.Set("Authorization", "Bearer "+config.TMDBToken)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(body)
+}
+
 func main() {
 	// Setup routes with CORS
 	http.HandleFunc("/api/movies", enableCORS(moviesHandler))
 	http.HandleFunc("/api/config", enableCORS(configHandler))
 	http.HandleFunc("/health", enableCORS(healthHandler))
+
+	// TMDB proxy routes
+	http.HandleFunc("/api/tmdb/proxy", enableCORS(tmdbProxyHandler))
+	http.HandleFunc("/api/tmdb/trending", enableCORS(tmdbTrendingHandler))
+	http.HandleFunc("/api/tmdb/popular", enableCORS(tmdbPopularHandler))
+	http.HandleFunc("/api/tmdb/movie", enableCORS(tmdbMovieDetailsHandler))
+	http.HandleFunc("/api/tmdb/genres", enableCORS(tmdbGenresHandler))
+	http.HandleFunc("/api/tmdb/discover", enableCORS(tmdbDiscoverHandler))
+	http.HandleFunc("/api/tmdb/search", enableCORS(tmdbSearchHandler))
 
 	// Root handler
 	http.HandleFunc("/", enableCORS(func(w http.ResponseWriter, r *http.Request) {
@@ -179,9 +415,15 @@ func main() {
 			"message": "JellyStreaming API",
 			"version": "2.0.0",
 			"endpoints": map[string]string{
-				"/api/movies": "GET - Fetch movies from Jellyfin",
-				"/api/config": "GET - Get Jellyfin configuration",
-				"/health":     "GET - Health check",
+				"/api/movies":        "GET - Fetch movies from Jellyfin",
+				"/api/config":        "GET - Get Jellyfin configuration",
+				"/health":            "GET - Health check",
+				"/api/tmdb/trending": "GET - Get trending movies from TMDB",
+				"/api/tmdb/popular":  "GET - Get popular movies from TMDB",
+				"/api/tmdb/movie":    "GET - Get movie details from TMDB (requires ?id=)",
+				"/api/tmdb/genres":   "GET - Get movie genres from TMDB",
+				"/api/tmdb/discover": "GET - Discover movies from TMDB",
+				"/api/tmdb/search":   "GET - Search movies from TMDB (requires ?query=)",
 			},
 		})
 	}))

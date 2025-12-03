@@ -1,0 +1,254 @@
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.8);
+  z-index: 2000;
+  overflow-y: auto;
+  padding: 50px 20px;
+}
+
+.modal.active {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.modal-content {
+  background-color: #181818;
+  border-radius: 12px;
+  max-width: 900px;
+  width: 100%;
+  position: relative;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: #181818;
+  color: white;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: all 0.3s;
+}
+
+.modal-close:hover {
+  background-color: #e50914;
+}
+
+.modal-header {
+  position: relative;
+  width: 100%;
+  height: 450px;
+  overflow: hidden;
+  border-radius: 12px 12px 0 0;
+}
+
+.modal-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-body {
+  padding: 40px;
+}
+
+#modal-title {
+  font-size: 36px;
+  margin-bottom: 15px;
+}
+
+.modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  color: #e5e5e5;
+  flex-wrap: wrap;
+}
+
+.rating {
+  color: #ffd700;
+  font-weight: 600;
+}
+
+.modal-description {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #e5e5e5;
+  margin-bottom: 30px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.modal-secondary {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+/* Cast Section */
+.modal-cast {
+  margin-top: 30px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.modal-cast h3 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: #e5e5e5;
+}
+
+.cast-list {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.cast-member {
+  min-width: 120px;
+  text-align: center;
+}
+
+.cast-member img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+.cast-placeholder {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  color: #666;
+  margin: 0 auto 10px;
+}
+
+.cast-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e5e5e5;
+  margin-bottom: 5px;
+}
+
+.cast-character {
+  font-size: 12px;
+  color: #999;
+}
+
+/* Similar Movies Section */
+.modal-similar {
+  margin-top: 30px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.modal-similar h3 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: #e5e5e5;
+}
+
+.similar-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 15px;
+}
+
+.similar-item {
+  cursor: pointer;
+  transition: transform 0.3s;
+}
+
+.similar-item:hover {
+  transform: scale(1.05);
+}
+
+.similar-item img {
+  width: 100%;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.similar-item p {
+  font-size: 14px;
+  color: #e5e5e5;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-body {
+    padding: 20px;
+  }
+
+  #modal-title {
+    font-size: 24px;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .modal-header {
+    height: 250px;
+  }
+
+  .cast-list {
+    gap: 10px;
+  }
+
+  .cast-member {
+    min-width: 80px;
+  }
+
+  .cast-member img,
+  .cast-placeholder {
+    width: 80px;
+    height: 80px;
+  }
+
+  .similar-list {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+  }
+}

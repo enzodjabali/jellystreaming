@@ -1,0 +1,96 @@
+/* Hero Section */
+.hero {
+  position: relative;
+  height: 80vh;
+  background-position: center;
+  background-size: cover;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 50px 100px;
+  margin-top: 0;
+}
+
+.hero-content {
+  max-width: 600px;
+  z-index: 2;
+}
+
+.hero-title {
+  font-size: 64px;
+  font-weight: 700;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+}
+
+.hero-meta {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.hero-description {
+  font-size: 18px;
+  line-height: 1.6;
+  margin-bottom: 30px;
+  color: #e5e5e5;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+/* Content Rows */
+.content-rows {
+  margin-top: -100px;
+  position: relative;
+  z-index: 10;
+}
+
+.content-row {
+  padding: 0 50px;
+  margin-bottom: 40px;
+}
+
+.row-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #e5e5e5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero {
+    padding: 0 20px 50px;
+    height: 70vh;
+  }
+
+  .hero-title {
+    font-size: 36px;
+  }
+
+  .hero-description {
+    font-size: 14px;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+  }
+
+  .hero-buttons .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .content-rows {
+    margin-top: -50px;
+  }
+
+  .content-row {
+    padding: 0 20px;
+  }
+}
