@@ -3,10 +3,10 @@ const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
 // TMDB API Functions
 export const tmdbApi = {
-  getTrending: async (type = 'movie', timeWindow = 'week') => {
+  getTrending: async (type = 'movie', timeWindow = 'week', page = 1) => {
     try {
       const response = await fetch(
-        `${API_URL}/api/tmdb/trending?type=${type}&time_window=${timeWindow}`
+        `${API_URL}/api/tmdb/trending?type=${type}&time_window=${timeWindow}&page=${page}`
       );
       if (!response.ok) throw new Error('Failed to fetch trending');
       return await response.json();

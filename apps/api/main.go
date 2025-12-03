@@ -336,9 +336,13 @@ func tmdbTrendingHandler(w http.ResponseWriter, r *http.Request) {
 	if timeWindow == "" {
 		timeWindow = "week"
 	}
+	page := r.URL.Query().Get("page")
+	if page == "" {
+		page = "1"
+	}
 
 	endpoint := fmt.Sprintf("/trending/%s/%s", mediaType, timeWindow)
-	tmdbURL := fmt.Sprintf("https://api.themoviedb.org/3%s?language=en-US", endpoint)
+	tmdbURL := fmt.Sprintf("https://api.themoviedb.org/3%s?language=en-US&page=%s", endpoint, page)
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	req, _ := http.NewRequest("GET", tmdbURL, nil)
