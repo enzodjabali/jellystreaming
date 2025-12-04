@@ -82,8 +82,8 @@ const MyMovies = () => {
   return (
     <div className="my-movies">
       <div className="my-movies-header">
-        <h1>My Movies</h1>
-        <p className="subtitle">{movies.length} movies in your library</p>
+        <h1>Movies</h1>
+        <p className="subtitle">{movies.length} Movies</p>
       </div>
 
       <div className="movies-grid">

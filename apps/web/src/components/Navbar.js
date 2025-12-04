@@ -22,7 +22,7 @@ const Navbar = () => {
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
       <div className="nav-container">
-        <Link to="/" className="logo">StreamHub</Link>
+        <Link to="/" className="logo">JellyStreaming</Link>
         <ul className="nav-links">
           <li>
             <Link to="/" className={isActive('/') ? 'active' : ''}>
@@ -37,6 +37,11 @@ const Navbar = () => {
           <li>
             <Link to="/movies" className={isActive('/movies') ? 'active' : ''}>
               Movies
+            </Link>
+          </li>
+          <li>
+            <Link to="/tvshows" className={isActive('/tvshows') ? 'active' : ''}>
+              TV Shows
             </Link>
           </li>
           <li>

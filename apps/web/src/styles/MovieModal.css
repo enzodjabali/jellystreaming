@@ -18,6 +18,32 @@
   align-items: flex-start;
 }
 
+/* Modal Overlay - for SeriesModal and other modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .modal-content {
   background-color: #181818;
   border-radius: 12px;
@@ -25,6 +51,8 @@
   width: 100%;
   position: relative;
   animation: slideIn 0.3s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 @keyframes slideIn {
@@ -36,6 +64,71 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Modal Backdrop */
+.modal-backdrop {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 12px 12px 0 0;
+}
+
+.backdrop-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(to top, #181818 0%, rgba(24, 24, 24, 0.8) 50%, transparent 100%);
+}
+
+/* Modal Info Section */
+.modal-info {
+  display: flex;
+  gap: 30px;
+  padding: 0 40px 40px;
+  margin-top: -100px;
+  position: relative;
+  z-index: 1;
+}
+
+.modal-poster {
+  width: 200px;
+  min-width: 200px;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.modal-details {
+  flex: 1;
+  color: white;
+}
+
+.modal-details h2 {
+  font-size: 36px;
+  margin: 0 0 15px 0;
+  font-weight: 700;
+}
+
+.modal-overview {
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 20px 0;
+}
+
+.rating-badge {
+  padding: 4px 10px;
+  background: rgba(109, 109, 110, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .modal-close {
@@ -108,7 +201,154 @@
 .modal-actions {
   display: flex;
   gap: 15px;
-  margin-bottom: 20px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.btn-play {
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  background: #e50914;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-play:hover {
+  background: #f40612;
+  transform: scale(1.05);
+}
+
+.btn-download {
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  background: transparent;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-download:hover {
+  border-color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Genres */
+.modal-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.genre-tag {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.2s;
+}
+
+.genre-tag:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Season Selection */
+.season-selection {
+  margin: 25px 0;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.season-selection h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: white;
+}
+
+.seasons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.season-checkbox {
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.season-checkbox:hover:not(.disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.season-checkbox.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.season-checkbox-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.season-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.season-checkbox input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+}
+
+.season-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.season-title {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.episode-count {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+}
+
+.season-note {
+  margin: 10px 0 0 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
 }
 
 .modal-secondary {
@@ -267,6 +507,68 @@
   color: #22c55e;
 }
 
+/* Season Status Indicators */
+.season-status {
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.season-status.downloaded {
+  color: #22c55e;
+}
+
+.season-status.monitored {
+  color: #3b82f6;
+}
+
+.season-status.not-monitored {
+  color: rgba(255, 255, 255, 0.3);
+  display: none;
+}
+
+/* Download Status */
+.download-status {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.download-status-with-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.btn-download-more {
+  padding: 12px 24px;
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-download-more:hover:not(:disabled) {
+  background-color: rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-download-more:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-download-more.downloading {
+  background-color: rgba(229, 9, 20, 0.2);
+  border-color: #e50914;
+  color: #ff6b6b;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .modal-body {
@@ -302,5 +604,35 @@
   .similar-list {
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 10px;
+  }
+}
+
+/* Modal Loading State */
+.modal-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 20px;
+}
+
+.modal-loading .spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top: 4px solid #e50914;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.modal-loading p {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
