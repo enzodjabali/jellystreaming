@@ -1,4 +1,5 @@
-const API_URL = process.env.REACT_APP_API_URL || '';
+import { API_URL } from '../config';
+
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
 // Helper function to get auth headers

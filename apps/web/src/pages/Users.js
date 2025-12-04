@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config';
 import '../styles/Users.css';
 
 function Users() {
@@ -16,8 +17,6 @@ function Users() {
     isAdmin: false
   });
   const [message, setMessage] = useState({ type: '', text: '' });
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://api:8080';
 
   useEffect(() => {
     fetchUsers();

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config';
 import '../styles/Profile.css';
 
 function Profile() {
@@ -9,8 +10,6 @@ function Profile() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://api:8080';
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
