@@ -1,0 +1,69 @@
+name: Build and Publish to GitHub Packages on Tag
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Log in to GitHub Packages container registry
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Step 3: Determine build context and Docker image name
+      - name: Determine build context
+        id: determine-context
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          
+          if [[ "$TAG" == *"api"* ]]; then
+            BUILD_CONTEXT="./apps/api"
+            PACKAGE_NAME="api"
+          elif [[ "$TAG" == *"web"* ]]; then
+            BUILD_CONTEXT="./apps/web"
+            PACKAGE_NAME="web"
+          else
+            echo "Error: Tag name invalid."
+            exit 1
+          fi
+
+          # Expose these as environment variables
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "BUILD_CONTEXT=$BUILD_CONTEXT" >> $GITHUB_ENV
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
+
+      # Step 4: Build and tag the Docker image (version & latest)
+      - name: Build and tag Docker image
+        run: |
+          IMAGE="ghcr.io/${{ github.repository }}/${{ env.PACKAGE_NAME }}"
+          docker build --build-arg VERSION="${{ env.TAG }}" \
+                      -t "$IMAGE:${{ env.TAG }}" \
+                      ${{ env.BUILD_CONTEXT }}
+          docker tag "$IMAGE:${{ env.TAG }}" "$IMAGE:latest"
+
+      # Step 5: Push the Docker image with version tag
+      - name: Push Docker image with version tag
+        run: |
+          IMAGE="ghcr.io/${{ github.repository }}/${{ env.PACKAGE_NAME }}"
+          docker push "$IMAGE:${{ env.TAG }}"
+
+      # Step 6: Push the Docker image with 'latest' tag
+      - name: Push Docker image with 'latest' tag
+        run: |
+          IMAGE="ghcr.io/${{ github.repository }}/${{ env.PACKAGE_NAME }}"
+          docker push "$IMAGE:latest"
