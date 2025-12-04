@@ -208,7 +208,7 @@ func getEnv(key, defaultValue string) string {
 func enableCORS(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 		if r.Method == "OPTIONS" {
@@ -1277,46 +1277,82 @@ func tmdbTVSearchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// Setup routes with CORS
-	http.HandleFunc("/api/jellyfin/movies", enableCORS(moviesHandler))
-	http.HandleFunc("/api/config", enableCORS(configHandler))
-	http.HandleFunc("/api/jellyfin/movies/search", enableCORS(searchMovieHandler))
+	// Initialize MongoDB
+	if err := InitDatabase(); err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	defer CloseDatabase()
+
+	// Public routes (no authentication required)
 	http.HandleFunc("/health", enableCORS(healthHandler))
 
-	// TMDB proxy routes
-	http.HandleFunc("/api/tmdb/proxy", enableCORS(tmdbProxyHandler))
-	http.HandleFunc("/api/tmdb/trending", enableCORS(tmdbTrendingHandler))
-	http.HandleFunc("/api/tmdb/popular", enableCORS(tmdbPopularHandler))
-	http.HandleFunc("/api/tmdb/movie", enableCORS(tmdbMovieDetailsHandler))
-	http.HandleFunc("/api/tmdb/genres", enableCORS(tmdbGenresHandler))
-	http.HandleFunc("/api/tmdb/discover", enableCORS(tmdbDiscoverHandler))
-	http.HandleFunc("/api/tmdb/search", enableCORS(tmdbSearchHandler))
+	// Authentication routes
+	http.HandleFunc("/api/auth/login", enableCORS(loginHandler))
+	http.HandleFunc("/api/auth/verify", enableCORS(authMiddleware(verifyTokenHandler)))
+	http.HandleFunc("/api/auth/me", enableCORS(authMiddleware(getCurrentUserHandler)))
+	http.HandleFunc("/api/auth/change-password", enableCORS(authMiddleware(changePasswordHandler)))
 
-	// Radarr routes
-	http.HandleFunc("/api/radarr/movie", enableCORS(radarrAddMovieHandler))
-	http.HandleFunc("/api/radarr/queue", enableCORS(radarrQueueHandler))
-	http.HandleFunc("/api/radarr/movies", enableCORS(radarrMoviesHandler))
-	http.HandleFunc("/api/radarr/rootfolders", enableCORS(radarrRootFoldersHandler))
-	http.HandleFunc("/api/radarr/refresh", enableCORS(radarrRefreshHandler))
+	// User management routes (admin only)
+	http.HandleFunc("/api/users", enableCORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			adminMiddleware(listUsersHandler)(w, r)
+		case http.MethodPost:
+			adminMiddleware(createUserHandler)(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
 
-	// Jellyfin TV Shows routes
-	http.HandleFunc("/api/jellyfin/series", enableCORS(seriesHandler))
+	// User update/delete routes (admin only)
+	http.HandleFunc("/api/users/", enableCORS(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPut:
+			adminMiddleware(updateUserHandler)(w, r)
+		case http.MethodDelete:
+			adminMiddleware(deleteUserHandler)(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	}))
 
-	// Sonarr routes
-	http.HandleFunc("/api/sonarr/series", enableCORS(sonarrAddSeriesHandler))
-	http.HandleFunc("/api/sonarr/queue", enableCORS(sonarrQueueHandler))
-	http.HandleFunc("/api/sonarr/allseries", enableCORS(sonarrSeriesHandler))
-	http.HandleFunc("/api/sonarr/rootfolders", enableCORS(sonarrRootFoldersHandler))
-	http.HandleFunc("/api/sonarr/refresh", enableCORS(sonarrRefreshHandler))
-	http.HandleFunc("/api/sonarr/lookup", enableCORS(sonarrLookupHandler))
+	// Protected routes - Jellyfin
+	http.HandleFunc("/api/jellyfin/movies", enableCORS(authMiddleware(moviesHandler)))
+	http.HandleFunc("/api/config", enableCORS(authMiddleware(configHandler)))
+	http.HandleFunc("/api/jellyfin/movies/search", enableCORS(authMiddleware(searchMovieHandler)))
+	http.HandleFunc("/api/jellyfin/series", enableCORS(authMiddleware(seriesHandler)))
 
-	// TMDB TV Shows routes (order matters - most specific first)
-	http.HandleFunc("/api/tmdb/tv/trending", enableCORS(tmdbTVTrendingHandler))
-	http.HandleFunc("/api/tmdb/tv/popular", enableCORS(tmdbTVPopularHandler))
-	http.HandleFunc("/api/tmdb/tv/search", enableCORS(tmdbTVSearchHandler))
+	// Protected routes - TMDB proxy
+	http.HandleFunc("/api/tmdb/proxy", enableCORS(authMiddleware(tmdbProxyHandler)))
+	http.HandleFunc("/api/tmdb/trending", enableCORS(authMiddleware(tmdbTrendingHandler)))
+	http.HandleFunc("/api/tmdb/popular", enableCORS(authMiddleware(tmdbPopularHandler)))
+	http.HandleFunc("/api/tmdb/movie", enableCORS(authMiddleware(tmdbMovieDetailsHandler)))
+	http.HandleFunc("/api/tmdb/genres", enableCORS(authMiddleware(tmdbGenresHandler)))
+	http.HandleFunc("/api/tmdb/discover", enableCORS(authMiddleware(tmdbDiscoverHandler)))
+	http.HandleFunc("/api/tmdb/search", enableCORS(authMiddleware(tmdbSearchHandler)))
+
+	// Protected routes - Radarr
+	http.HandleFunc("/api/radarr/movie", enableCORS(authMiddleware(radarrAddMovieHandler)))
+	http.HandleFunc("/api/radarr/queue", enableCORS(authMiddleware(radarrQueueHandler)))
+	http.HandleFunc("/api/radarr/movies", enableCORS(authMiddleware(radarrMoviesHandler)))
+	http.HandleFunc("/api/radarr/rootfolders", enableCORS(authMiddleware(radarrRootFoldersHandler)))
+	http.HandleFunc("/api/radarr/refresh", enableCORS(authMiddleware(radarrRefreshHandler)))
+
+	// Protected routes - Sonarr
+	http.HandleFunc("/api/sonarr/series", enableCORS(authMiddleware(sonarrAddSeriesHandler)))
+	http.HandleFunc("/api/sonarr/queue", enableCORS(authMiddleware(sonarrQueueHandler)))
+	http.HandleFunc("/api/sonarr/allseries", enableCORS(authMiddleware(sonarrSeriesHandler)))
+	http.HandleFunc("/api/sonarr/rootfolders", enableCORS(authMiddleware(sonarrRootFoldersHandler)))
+	http.HandleFunc("/api/sonarr/refresh", enableCORS(authMiddleware(sonarrRefreshHandler)))
+	http.HandleFunc("/api/sonarr/lookup", enableCORS(authMiddleware(sonarrLookupHandler)))
+
+	// Protected routes - TMDB TV Shows (order matters - most specific first)
+	http.HandleFunc("/api/tmdb/tv/trending", enableCORS(authMiddleware(tmdbTVTrendingHandler)))
+	http.HandleFunc("/api/tmdb/tv/popular", enableCORS(authMiddleware(tmdbTVPopularHandler)))
+	http.HandleFunc("/api/tmdb/tv/search", enableCORS(authMiddleware(tmdbTVSearchHandler)))
 
 	// TV details and external IDs router
-	http.HandleFunc("/api/tmdb/tv/", enableCORS(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/tmdb/tv/", enableCORS(authMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		// Handle /api/tmdb/tv/{id}/external_ids
 		if len(path) > len("/api/tmdb/tv/") && len(path) >= 13 {
@@ -1326,43 +1362,54 @@ func main() {
 			}
 		}
 		tmdbTVDetailsHandler(w, r)
-	}))
+	})))
 
 	// Also handle /api/tmdb/tv without trailing slash
-	http.HandleFunc("/api/tmdb/tv", enableCORS(tmdbTVDetailsHandler))
+	http.HandleFunc("/api/tmdb/tv", enableCORS(authMiddleware(tmdbTVDetailsHandler)))
 
 	// Root handler
 	http.HandleFunc("/", enableCORS(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"message": "JellyStreaming API",
-			"version": "2.1.0",
+			"message":        "JellyStreaming API",
+			"version":        "2.2.0",
+			"authentication": "JWT token required for most endpoints",
 			"endpoints": map[string]string{
-				"/api/jellyfin/movies":        "GET - Fetch movies from Jellyfin",
-				"/api/jellyfin/movies/search": "GET - Search movie in Jellyfin (requires ?title=)",
-				"/api/jellyfin/series":        "GET - Fetch TV shows from Jellyfin",
-				"/api/config":                 "GET - Get Jellyfin configuration",
-				"/health":                     "GET - Health check",
-				"/api/tmdb/trending":          "GET - Get trending movies from TMDB",
-				"/api/tmdb/popular":           "GET - Get popular movies from TMDB",
-				"/api/tmdb/movie":             "GET - Get movie details from TMDB (requires ?id=)",
-				"/api/tmdb/genres":            "GET - Get movie genres from TMDB",
-				"/api/tmdb/discover":          "GET - Discover movies from TMDB",
-				"/api/tmdb/search":            "GET - Search movies from TMDB (requires ?query=)",
-				"/api/tmdb/tv/trending":       "GET - Get trending TV shows from TMDB",
-				"/api/tmdb/tv/popular":        "GET - Get popular TV shows from TMDB",
-				"/api/tmdb/tv":                "GET - Get TV show details from TMDB (requires ?id=)",
-				"/api/tmdb/tv/search":         "GET - Search TV shows from TMDB (requires ?query=)",
-				"/api/radarr/movie":           "POST - Add movie to Radarr",
-				"/api/radarr/queue":           "GET - Get Radarr download queue",
-				"/api/radarr/movies":          "GET - Get all movies in Radarr",
-				"/api/radarr/rootfolders":     "GET - Get Radarr root folders",
-				"/api/radarr/refresh":         "POST - Refresh Radarr monitored downloads",
-				"/api/sonarr/series":          "POST - Add TV show to Sonarr",
-				"/api/sonarr/queue":           "GET - Get Sonarr download queue",
-				"/api/sonarr/allseries":       "GET - Get all TV shows in Sonarr",
-				"/api/sonarr/rootfolders":     "GET - Get Sonarr root folders",
-				"/api/sonarr/refresh":         "POST - Refresh Sonarr monitored downloads",
+				// Public
+				"/health": "GET - Health check",
+				// Auth
+				"/api/auth/login":           "POST - Login with username/password",
+				"/api/auth/verify":          "GET - Verify JWT token (requires auth)",
+				"/api/auth/me":              "GET - Get current user info (requires auth)",
+				"/api/auth/change-password": "POST - Change own password (requires auth)",
+				// Users (admin only)
+				"/api/users":     "GET/POST - List or create users (admin only)",
+				"/api/users/:id": "PUT/DELETE - Update or delete user (admin only)",
+				// Protected endpoints
+				"/api/jellyfin/movies":        "GET - Fetch movies from Jellyfin (requires auth)",
+				"/api/jellyfin/movies/search": "GET - Search movie in Jellyfin (requires auth)",
+				"/api/jellyfin/series":        "GET - Fetch TV shows from Jellyfin (requires auth)",
+				"/api/config":                 "GET - Get Jellyfin configuration (requires auth)",
+				"/api/tmdb/trending":          "GET - Get trending movies from TMDB (requires auth)",
+				"/api/tmdb/popular":           "GET - Get popular movies from TMDB (requires auth)",
+				"/api/tmdb/movie":             "GET - Get movie details from TMDB (requires auth)",
+				"/api/tmdb/genres":            "GET - Get movie genres from TMDB (requires auth)",
+				"/api/tmdb/discover":          "GET - Discover movies from TMDB (requires auth)",
+				"/api/tmdb/search":            "GET - Search movies from TMDB (requires auth)",
+				"/api/tmdb/tv/trending":       "GET - Get trending TV shows from TMDB (requires auth)",
+				"/api/tmdb/tv/popular":        "GET - Get popular TV shows from TMDB (requires auth)",
+				"/api/tmdb/tv":                "GET - Get TV show details from TMDB (requires auth)",
+				"/api/tmdb/tv/search":         "GET - Search TV shows from TMDB (requires auth)",
+				"/api/radarr/movie":           "POST - Add movie to Radarr (requires auth)",
+				"/api/radarr/queue":           "GET - Get Radarr download queue (requires auth)",
+				"/api/radarr/movies":          "GET - Get all movies in Radarr (requires auth)",
+				"/api/radarr/rootfolders":     "GET - Get Radarr root folders (requires auth)",
+				"/api/radarr/refresh":         "POST - Refresh Radarr monitored downloads (requires auth)",
+				"/api/sonarr/series":          "POST - Add TV show to Sonarr (requires auth)",
+				"/api/sonarr/queue":           "GET - Get Sonarr download queue (requires auth)",
+				"/api/sonarr/allseries":       "GET - Get all TV shows in Sonarr (requires auth)",
+				"/api/sonarr/rootfolders":     "GET - Get Sonarr root folders (requires auth)",
+				"/api/sonarr/refresh":         "POST - Refresh Sonarr monitored downloads (requires auth)",
 			},
 		})
 	}))

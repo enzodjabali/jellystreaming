@@ -16,6 +16,8 @@ services:
       - SONARR_URL=${SONARR_URL}
       - SONARR_API_KEY=${SONARR_API_KEY}
       - PORT=${PORT}
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
       interval: 30s

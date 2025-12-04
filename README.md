@@ -1,27 +1,146 @@
 # JellyStreaming
 
-A Go API that connects to your Jellyfin instance to fetch and display your movie collection.
+A full-stack streaming media management system that connects to Jellyfin, Radarr, and Sonarr with a beautiful React frontend and secure Go backend.
 
 ## Features
 
-- Fetches movies from your Jellyfin instance
-- RESTful API endpoints
-- Docker support for easy deployment
-- Health check endpoint
+### Core Features
+- Browse your complete Jellyfin movie and TV show collection
+- Integrated HLS video player for streaming content
+- Search and discover new content from TMDB
+- Add movies via Radarr and TV shows via Sonarr
+- Real-time download queue monitoring
+- Season-by-season TV show management
+
+### Authentication & Security
+- **JWT-based authentication** with MongoDB
+- **User management system** with admin and regular user roles
+- **Password security** with bcrypt hashing
+- **Protected API endpoints** - all routes require authentication
+- Profile management and password changes
+- Admin dashboard for user administration
+
+### User Interface
+- Modern, Netflix-inspired design
+- Responsive layout for all devices
+- Real-time status updates
+- Smooth animations and transitions
+- Dark mode optimized
+
+### Integration
+- **Jellyfin**: Stream your existing media library
+- **Radarr**: Automated movie management
+- **Sonarr**: Automated TV show management
+- **TMDB**: Rich metadata and discovery
+
+## Quick Start
+
+### Prerequisites
+- Docker & Docker Compose
+- MongoDB Atlas account (or local MongoDB)
+- Jellyfin, Radarr, and Sonarr instances
+- TMDB API key
+
+### Setup
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/enzodjabali/jellystreaming.git
+cd jellystreaming
+```
+
+2. **Configure environment variables**
+```bash
+cp .env.example .env
+# Edit .env with your actual credentials
+```
+
+Required environment variables:
+```bash
+# Jellyfin
+JELLYFIN_URL=https://your-jellyfin-url
+JELLYFIN_USER_ID=your_user_id
+JELLYFIN_PARENT_ID=your_parent_id
+JELLYFIN_API_KEY=your_api_key
+
+# TMDB
+TMDB_TOKEN=your_tmdb_token
+
+# Radarr
+RADARR_URL=https://your-radarr-url
+RADARR_API_KEY=your_radarr_key
+
+# Sonarr
+SONARR_URL=https://your-sonarr-url
+SONARR_API_KEY=your_sonarr_key
+
+# MongoDB (for authentication)
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net
+
+# JWT Secret (generate with: openssl rand -base64 32)
+JWT_SECRET=your_strong_random_secret
+
+# API Port
+PORT=8080
+
+# Frontend
+REACT_APP_API_URL=http://localhost:8080
+```
+
+3. **Start the application**
+```bash
+docker-compose up -d
+```
+
+The application will be available at:
+- Frontend: http://localhost:3000
+- API: http://localhost:8080
+
+4. **First login**
+```
+Username: admin
+Password: admin
+```
+**Change the default password immediately!**
+
+## Architecture
+
+### Backend (Go)
+- RESTful API with JWT authentication
+- MongoDB for user management
+- Proxies to Jellyfin, Radarr, Sonarr, and TMDB
+- CORS enabled for frontend access
+
+### Frontend (React)
+- Single Page Application (SPA)
+- Context API for authentication state
+- Protected routes with role-based access
+- Responsive design with CSS
+
+### Database (MongoDB)
+- User authentication and management
+- bcrypt password hashing
+- Unique username constraints
 
 ## API Endpoints
 
-- `GET /` - API information
-- `GET /api/movies` - Fetch all movies from Jellyfin
+### Public
 - `GET /health` - Health check
 
-## Environment Variables
+### Authentication
+- `POST /api/auth/login` - User login
+- `GET /api/auth/verify` - Verify JWT token
+- `GET /api/auth/me` - Get current user
+- `POST /api/auth/change-password` - Change password
 
-- `JELLYFIN_URL` - Your Jellyfin server URL (default: https://watch.jellystreaming.ovh)
-- `JELLYFIN_USER_ID` - Your Jellyfin user ID (default: 700d4b2ee01941da951a1d2c716476cd)
-- `JELLYFIN_PARENT_ID` - Parent collection ID (default: db4c1708cbb5dd1676284a40f2950aba)
-- `JELLYFIN_API_KEY` - Jellyfin API key (optional)
-- `PORT` - Server port (default: 8080)
+### User Management (Admin Only)
+- `GET /api/users` - List all users
+- `POST /api/users` - Create user
+- `PUT /api/users/:id` - Update user
+- `DELETE /api/users/:id` - Delete user
+
+### Protected Endpoints (Require Auth)
+All Jellyfin, Radarr, Sonarr, and TMDB endpoints require authentication.
 
 ## Running with Docker Compose
 
@@ -82,7 +201,7 @@ docker run -p 8080:8080 \
 curl http://localhost:8080/
 
 # Get movies
-curl http://localhost:8080/api/movies
+curl http://localhost:8080/api/jellyfin/movies
 
 # Health check
 curl http://localhost:8080/health

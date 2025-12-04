@@ -1,11 +1,47 @@
 const API_URL = process.env.REACT_APP_API_URL || '';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+};
+
+// Helper function for authenticated fetch
+const authenticatedFetch = async (url, options = {}) => {
+  const headers = getAuthHeaders();
+  
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...headers,
+      ...options.headers,
+    },
+  });
+  
+  // If unauthorized, redirect to login
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+    throw new Error('Unauthorized');
+  }
+  
+  return response;
+};
+
 // TMDB API Functions
 export const tmdbApi = {
   getTrending: async (type = 'movie', timeWindow = 'week', page = 1) => {
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/trending?type=${type}&time_window=${timeWindow}&page=${page}`
       );
       if (!response.ok) throw new Error('Failed to fetch trending');
@@ -18,7 +54,7 @@ export const tmdbApi = {
 
   getPopular: async (page = 1) => {
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/popular?page=${page}`
       );
       if (!response.ok) throw new Error('Failed to fetch popular movies');
@@ -31,7 +67,7 @@ export const tmdbApi = {
 
   getMovieDetails: async (movieId) => {
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/movie?id=${movieId}`
       );
       if (!response.ok) throw new Error('Failed to fetch movie details');
@@ -44,7 +80,7 @@ export const tmdbApi = {
 
   getGenres: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/tmdb/genres`);
+      const response = await authenticatedFetch(`${API_URL}/api/tmdb/genres`);
       if (!response.ok) throw new Error('Failed to fetch genres');
       return await response.json();
     } catch (error) {
@@ -56,7 +92,7 @@ export const tmdbApi = {
   discoverMovies: async (params = {}) => {
     try {
       const queryParams = new URLSearchParams(params);
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/discover?${queryParams.toString()}`
       );
       if (!response.ok) throw new Error('Failed to discover movies');
@@ -69,7 +105,7 @@ export const tmdbApi = {
 
   searchMovies: async (query, page = 1) => {
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/search?query=${encodeURIComponent(query)}&page=${page}`
       );
       if (!response.ok) throw new Error('Failed to search movies');
@@ -95,7 +131,7 @@ export const tmdbApi = {
 export const jellyfinApi = {
   getMovies: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/jellyfin/movies`);
+      const response = await authenticatedFetch(`${API_URL}/api/jellyfin/movies`);
       if (!response.ok) throw new Error('Failed to fetch movies');
       const data = await response.json();
       return data.Items || [];
@@ -107,7 +143,7 @@ export const jellyfinApi = {
 
   getConfig: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/config`);
+      const response = await authenticatedFetch(`${API_URL}/api/config`);
       if (!response.ok) throw new Error('Failed to fetch config');
       return await response.json();
     } catch (error) {
@@ -118,7 +154,7 @@ export const jellyfinApi = {
 
   searchMovie: async (title) => {
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/jellyfin/movies/search?title=${encodeURIComponent(title)}`
       );
       if (!response.ok) throw new Error('Failed to search movie');
@@ -145,7 +181,7 @@ export const jellyfinApi = {
 export const jellyfinTVApi = {
   getSeries: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/jellyfin/series`);
+      const response = await authenticatedFetch(`${API_URL}/api/jellyfin/series`);
       if (!response.ok) throw new Error('Failed to fetch TV shows');
       const data = await response.json();
       return data.Items || [];
@@ -170,7 +206,7 @@ export const jellyfinTVApi = {
 export const tmdbTVApi = {
   getTrending: async (timeWindow = 'week', page = 1) => {
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/tv/trending?time_window=${timeWindow}&page=${page}`
       );
       if (!response.ok) throw new Error('Failed to fetch trending TV shows');
@@ -183,7 +219,7 @@ export const tmdbTVApi = {
 
   getPopular: async (page = 1) => {
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/tv/popular?page=${page}`
       );
       if (!response.ok) throw new Error('Failed to fetch popular TV shows');
@@ -196,7 +232,7 @@ export const tmdbTVApi = {
 
   getTVDetails: async (tvId) => {
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/tv?id=${tvId}`
       );
       if (!response.ok) throw new Error('Failed to fetch TV show details');
@@ -209,7 +245,7 @@ export const tmdbTVApi = {
 
   searchTV: async (query, page = 1) => {
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/tv/search?query=${encodeURIComponent(query)}&page=${page}`
       );
       if (!response.ok) throw new Error('Failed to search TV shows');
@@ -235,11 +271,8 @@ export const tmdbTVApi = {
 export const radarrApi = {
   addMovie: async (movieData) => {
     try {
-      const response = await fetch(`${API_URL}/api/radarr/movie`, {
+      const response = await authenticatedFetch(`${API_URL}/api/radarr/movie`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(movieData),
       });
       if (!response.ok) {
@@ -255,7 +288,7 @@ export const radarrApi = {
 
   getQueue: async (page = 1, pageSize = 50) => {
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/radarr/queue?page=${page}&pageSize=${pageSize}`
       );
       if (!response.ok) throw new Error('Failed to fetch Radarr queue');
@@ -268,7 +301,7 @@ export const radarrApi = {
 
   getMovies: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/radarr/movies`);
+      const response = await authenticatedFetch(`${API_URL}/api/radarr/movies`);
       if (!response.ok) throw new Error('Failed to fetch Radarr movies');
       return await response.json();
     } catch (error) {
@@ -279,7 +312,7 @@ export const radarrApi = {
   
   refreshMonitoredDownloads: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/radarr/refresh`, {
+      const response = await authenticatedFetch(`${API_URL}/api/radarr/refresh`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to refresh monitored downloads');
@@ -292,7 +325,7 @@ export const radarrApi = {
 
   getRootFolders: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/radarr/rootfolders`);
+      const response = await authenticatedFetch(`${API_URL}/api/radarr/rootfolders`);
       if (!response.ok) throw new Error('Failed to fetch Radarr root folders');
       return await response.json();
     } catch (error) {
@@ -328,11 +361,8 @@ export const radarrApi = {
 export const sonarrApi = {
   addSeries: async (seriesData) => {
     try {
-      const response = await fetch(`${API_URL}/api/sonarr/series`, {
+      const response = await authenticatedFetch(`${API_URL}/api/sonarr/series`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(seriesData),
       });
       if (!response.ok) {
@@ -348,11 +378,8 @@ export const sonarrApi = {
 
   updateSeries: async (seriesData) => {
     try {
-      const response = await fetch(`${API_URL}/api/sonarr/series`, {
+      const response = await authenticatedFetch(`${API_URL}/api/sonarr/series`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(seriesData),
       });
       if (!response.ok) {
@@ -368,7 +395,7 @@ export const sonarrApi = {
 
   getQueue: async (page = 1, pageSize = 50) => {
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/api/sonarr/queue?page=${page}&pageSize=${pageSize}`
       );
       if (!response.ok) throw new Error('Failed to fetch Sonarr queue');
@@ -381,7 +408,7 @@ export const sonarrApi = {
 
   getSeries: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/sonarr/allseries`);
+      const response = await authenticatedFetch(`${API_URL}/api/sonarr/allseries`);
       if (!response.ok) throw new Error('Failed to fetch Sonarr series');
       return await response.json();
     } catch (error) {
@@ -392,7 +419,7 @@ export const sonarrApi = {
   
   refreshMonitoredDownloads: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/sonarr/refresh`, {
+      const response = await authenticatedFetch(`${API_URL}/api/sonarr/refresh`, {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to refresh monitored downloads');
@@ -405,7 +432,7 @@ export const sonarrApi = {
 
   getRootFolders: async () => {
     try {
-      const response = await fetch(`${API_URL}/api/sonarr/rootfolders`);
+      const response = await authenticatedFetch(`${API_URL}/api/sonarr/rootfolders`);
       if (!response.ok) throw new Error('Failed to fetch Sonarr root folders');
       return await response.json();
     } catch (error) {

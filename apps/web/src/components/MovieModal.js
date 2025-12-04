@@ -407,6 +407,20 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
     }
   };
 
+  // Show loading state while fetching data
+  if (checkingJellyfin) {
+    return (
+      <div className="modal active" onClick={handleBackdropClick}>
+        <div className="modal-content">
+          <div className="modal-loading">
+            <div className="spinner"></div>
+            <p>Loading movie details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="modal active" onClick={handleBackdropClick}>
       <div className="modal-content">
