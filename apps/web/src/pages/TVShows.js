@@ -33,7 +33,8 @@ function TVShows() {
     fetchData();
   }, []);
 
-  const handleSeriesClick = (s) => {
+  const handleMoreInfo = (s, e) => {
+    e.stopPropagation();
     setSelectedSeries(s);
   };
 
@@ -41,7 +42,8 @@ function TVShows() {
     setSelectedSeries(null);
   };
 
-  const handlePlaySeries = (s) => {
+  const handlePlaySeries = (s, e) => {
+    if (e) e.stopPropagation();
     setPlayingSeries(s);
     setSelectedSeries(null);
   };
@@ -92,7 +94,6 @@ function TVShows() {
           <div
             key={s.Id}
             className="series-card"
-            onClick={() => handleSeriesClick(s)}
           >
             <div className="series-poster">
               {s.ImageTags && s.ImageTags.Primary ? (
@@ -112,7 +113,18 @@ function TVShows() {
                 </div>
               )}
               <div className="series-overlay">
-                <button className="play-btn">▶ Watch</button>
+                <button className="watch-btn" onClick={(e) => handlePlaySeries(s, e)}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                  Watch
+                </button>
+                <button className="info-btn" onClick={(e) => handleMoreInfo(s, e)}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                  </svg>
+                  More Info
+                </button>
               </div>
             </div>
             <div className="series-info">
