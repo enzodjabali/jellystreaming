@@ -518,6 +518,10 @@
   color: #22c55e;
 }
 
+.season-status.downloading {
+  color: #fbbf24;
+}
+
 .season-status.monitored {
   color: #3b82f6;
 }

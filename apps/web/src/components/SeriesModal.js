@@ -484,7 +484,11 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                       .map(season => {
                         const sonarrSeason = sonarrSeries?.seasons?.find(s => s.seasonNumber === season.season_number);
                         const isMonitored = sonarrSeason?.monitored || false;
-                        const hasFiles = sonarrSeason?.statistics?.episodeFileCount > 0;
+                        const episodeFileCount = sonarrSeason?.statistics?.episodeFileCount || 0;
+                        const totalEpisodeCount = sonarrSeason?.statistics?.totalEpisodeCount || 0;
+                        const isFullyDownloaded = episodeFileCount > 0 && episodeFileCount === totalEpisodeCount;
+                        const isPartiallyDownloaded = episodeFileCount > 0 && episodeFileCount < totalEpisodeCount;
+                        const hasFiles = episodeFileCount > 0;
                         const isAlreadyInLibrary = sonarrSeries && (isMonitored || hasFiles);
                         
                         // Determine checked state
@@ -505,8 +509,14 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                                 <span className="season-title">Season {season.season_number}</span>
                                 <span className="episode-count">({season.episode_count} episodes)</span>
                                 {sonarrSeries && (
-                                  <span className={`season-status ${hasFiles ? 'downloaded' : isMonitored ? 'monitored' : 'not-monitored'}`}>
-                                    {hasFiles ? '✓ Downloaded' : isMonitored ? '⬇ Monitored' : ''}
+                                  <span className={`season-status ${isFullyDownloaded ? 'downloaded' : isPartiallyDownloaded ? 'downloading' : isMonitored ? 'monitored' : 'not-monitored'}`}>
+                                    {isFullyDownloaded 
+                                      ? '✓ Downloaded' 
+                                      : isPartiallyDownloaded 
+                                        ? `⬇ Downloading (${episodeFileCount}/${totalEpisodeCount})` 
+                                        : isMonitored 
+                                          ? '⬇ Monitored' 
+                                          : ''}
                                   </span>
                                 )}
                               </div>
@@ -558,7 +568,7 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                   </button>
                 ) : (
                   <>
-                    {queueItem && (
+                    {queueItem && queueItem.status === 'downloading' && (
                       <div className="download-status">
                         <span className="status-downloading">
                           ⬇ Downloading... {queueItem.sizeleft && queueItem.size 
