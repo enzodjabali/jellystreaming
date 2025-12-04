@@ -419,6 +419,21 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
   const firstAirDate = tvDetails?.first_air_date || series.PremiereDate;
   const year = firstAirDate ? new Date(firstAirDate).getFullYear() : series.ProductionYear;
 
+  // Show loading state while fetching data
+  if (loading) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <button className="modal-close" onClick={onClose}>×</button>
+          <div className="modal-loading">
+            <div className="spinner"></div>
+            <p>Loading series details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -452,9 +467,6 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                 {series.OfficialRating && <span className="rating-badge">{series.OfficialRating}</span>}
                 {(tvDetails?.vote_average || series.CommunityRating) && (
                   <span className="rating">⭐ {(tvDetails?.vote_average || series.CommunityRating).toFixed(1)}</span>
-                )}
-                {(tvDetails?.status || series.Status) && (
-                  <span className="status-badge">{tvDetails?.status || series.Status}</span>
                 )}
               </div>
 

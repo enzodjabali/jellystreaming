@@ -85,7 +85,7 @@ function TVShows() {
   return (
     <div className="tvshows-page">
       <div className="page-header">
-        <h1>My TV Shows</h1>
+        <h1>TV Shows</h1>
         <span className="series-count">{series.length} Series</span>
       </div>
       
@@ -135,7 +135,6 @@ function TVShows() {
                   <span className="rating">⭐ {s.CommunityRating.toFixed(1)}</span>
                 )}
               </div>
-              {s.Status && <span className="status">{s.Status}</span>}
             </div>
           </div>
         ))}

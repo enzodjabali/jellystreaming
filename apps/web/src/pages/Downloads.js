@@ -104,28 +104,28 @@ const Downloads = () => {
     const { status, trackedDownloadStatus, trackedDownloadState } = item;
 
     if (status === 'downloading') {
-      return { class: 'status-downloading', label: 'Téléchargement en cours' };
+      return { class: 'status-downloading', label: 'Downloading' };
     }
     if (status === 'paused') {
-      return { class: 'status-paused', label: 'En pause' };
+      return { class: 'status-paused', label: 'Paused' };
     }
     if (status === 'queued') {
-      return { class: 'status-queued', label: 'En file d\'attente' };
+      return { class: 'status-queued', label: 'Queued' };
     }
     if (status === 'completed' && trackedDownloadState === 'importPending') {
-      return { class: 'status-importing', label: 'Import en attente' };
+      return { class: 'status-importing', label: 'Import Pending' };
     }
     if (status === 'completed' && trackedDownloadState === 'importBlocked') {
-      return { class: 'status-blocked', label: 'Import bloqué' };
+      return { class: 'status-blocked', label: 'Import Blocked' };
     }
     if (status === 'completed' && trackedDownloadStatus === 'warning') {
-      return { class: 'status-warning', label: 'Terminé avec avertissements' };
+      return { class: 'status-warning', label: 'Completed with Warnings' };
     }
     if (status === 'completed') {
-      return { class: 'status-completed', label: 'Téléchargé' };
+      return { class: 'status-completed', label: 'Completed' };
     }
     if (status === 'failed') {
-      return { class: 'status-failed', label: 'Échec' };
+      return { class: 'status-failed', label: 'Failed' };
     }
     
     return { class: 'status-unknown', label: status };
@@ -139,7 +139,7 @@ const Downloads = () => {
   };
 
   const formatTimeLeft = (timeleft) => {
-    if (!timeleft || timeleft === '00:00:00') return 'Terminé';
+    if (!timeleft || timeleft === '00:00:00') return 'Completed';
     return timeleft;
   };
 
@@ -251,7 +251,7 @@ const Downloads = () => {
                   <div className="title-with-type">
                     <h3 className="queue-item-title">{displayTitle}</h3>
                     <span className={`type-badge ${item.type === 'movie' ? 'type-movie' : 'type-series'}`}>
-                      {item.type === 'movie' ? '🎬 Movie' : '📺 Series'}
+                      {item.type === 'movie' ? 'MOVIE' : 'TV SHOW'}
                     </span>
                   </div>
                   <span className={`status-badge ${statusInfo.class}`}>

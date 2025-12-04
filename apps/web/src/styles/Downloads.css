@@ -162,14 +162,14 @@
 
 .type-movie {
   background-color: rgba(229, 9, 20, 0.2);
-  color: #ff6b6b;
-  border: 1px solid rgba(229, 9, 20, 0.3);
+  color: #e50914;
+  border: 1px solid rgba(229, 9, 20, 0.5);
 }
 
 .type-series {
-  background-color: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background-color: rgba(229, 9, 20, 0.2);
+  color: #e50914;
+  border: 1px solid rgba(229, 9, 20, 0.5);
 }
 
 /* Status Badges */
@@ -182,8 +182,9 @@
 }
 
 .status-downloading {
-  background-color: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
+  background-color: rgba(109, 109, 110, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .status-queued {

@@ -6,18 +6,25 @@
 
 .my-movies-header {
   padding: 0 50px 30px;
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
 }
 
 .my-movies-header h1 {
   font-size: 48px;
   font-weight: 700;
-  margin-bottom: 10px;
-  color: #ffffff;
+  margin: 0;
+  background: linear-gradient(135deg, #e50914 0%, #ff6b6b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .my-movies-header .subtitle {
-  font-size: 18px;
-  color: #e5e5e5;
+  font-size: 20px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
 }
 
 .movies-grid {

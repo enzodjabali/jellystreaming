@@ -22,7 +22,7 @@ const Navbar = () => {
   return (
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
       <div className="nav-container">
-        <Link to="/" className="logo">StreamHub</Link>
+        <Link to="/" className="logo">JellyStreaming</Link>
         <ul className="nav-links">
           <li>
             <Link to="/" className={isActive('/') ? 'active' : ''}>
