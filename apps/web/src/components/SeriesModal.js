@@ -435,6 +435,7 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                         const sonarrSeason = sonarrSeries?.seasons?.find(s => s.seasonNumber === season.season_number);
                         const isMonitored = sonarrSeason?.monitored || false;
                         const hasFiles = sonarrSeason?.statistics?.episodeFileCount > 0;
+                        const isAlreadyInLibrary = sonarrSeries && (isMonitored || hasFiles);
                         
                         // Determine checked state
                         const isChecked = sonarrSeries 
@@ -442,19 +443,24 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                           : (selectedSeasons.length === 0 || selectedSeasons.includes(season.season_number));
                         
                         return (
-                          <label key={season.id} className="season-checkbox">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => handleSeasonToggle(season.season_number)}
-                            />
-                            <span>Season {season.season_number}</span>
-                            <span className="episode-count">({season.episode_count} episodes)</span>
-                            {sonarrSeries && (
-                              <span className={`season-status ${hasFiles ? 'downloaded' : isMonitored ? 'monitored' : 'not-monitored'}`}>
-                                {hasFiles ? '✓ Downloaded' : isMonitored ? '⬇ Monitored' : ''}
-                              </span>
-                            )}
+                          <label key={season.id} className={`season-checkbox ${isAlreadyInLibrary ? 'disabled' : ''}`}>
+                            <div className="season-checkbox-content">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => handleSeasonToggle(season.season_number)}
+                                disabled={isAlreadyInLibrary}
+                              />
+                              <div className="season-info">
+                                <span className="season-title">Season {season.season_number}</span>
+                                <span className="episode-count">({season.episode_count} episodes)</span>
+                                {sonarrSeries && (
+                                  <span className={`season-status ${hasFiles ? 'downloaded' : isMonitored ? 'monitored' : 'not-monitored'}`}>
+                                    {hasFiles ? '✓ Downloaded' : isMonitored ? '⬇ Monitored' : ''}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
                           </label>
                         );
                       })}
@@ -504,13 +510,15 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                     ) : (
                       <span className="status-monitored">✓ In Library</span>
                     )}
-                    <button 
-                      className={`btn-download-more ${downloading ? 'downloading' : ''}`}
-                      onClick={handleDownload}
-                      disabled={downloading}
-                    >
-                      {downloading ? 'Updating...' : '⬇ Download More Seasons'}
-                    </button>
+                    {selectedSeasons.length > 0 && (
+                      <button 
+                        className={`btn-download-more ${downloading ? 'downloading' : ''}`}
+                        onClick={handleDownload}
+                        disabled={downloading}
+                      >
+                        {downloading ? 'Updating...' : '⬇ Download More Seasons'}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
