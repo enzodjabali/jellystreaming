@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { tmdbTVApi, jellyfinTVApi, sonarrApi } from '../services/api';
+import { tmdbTVApi, jellyfinTVApi, jellyfinApi, sonarrApi } from '../services/api';
 import '../styles/MovieModal.css'; // Reuse movie modal styles for now
 
 const SeriesModal = ({ series, onClose, onPlay }) => {
@@ -58,13 +58,15 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
           }
           
           // Try to find in Jellyfin by TMDB ID
+          let foundInJellyfin = false;
           try {
-            const jellyfinSeries = await jellyfinTVApi.getSeries();
-            const matchingSeries = jellyfinSeries.find(s => 
+            const jellyfinSeriesList = await jellyfinTVApi.getSeries();
+            const matchingSeries = jellyfinSeriesList.find(s => 
               s.ProviderIds?.Tmdb === series.id.toString()
             );
             if (matchingSeries) {
               setJellyfinSeries(matchingSeries);
+              foundInJellyfin = true;
             }
           } catch (error) {
             console.log('Series not in Jellyfin yet');
@@ -82,6 +84,21 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
               const queue = await sonarrApi.getQueue();
               const seriesQueue = queue.records?.find(q => q.seriesId === existingSeries.id);
               setQueueItem(seriesQueue);
+              
+              // If we haven't found the Jellyfin series yet, try by TVDB ID
+              if (!foundInJellyfin && existingSeries.tvdbId) {
+                try {
+                  const jellyfinSeriesList = await jellyfinTVApi.getSeries();
+                  const matchingByTvdb = jellyfinSeriesList.find(s => 
+                    s.ProviderIds?.Tvdb === existingSeries.tvdbId.toString()
+                  );
+                  if (matchingByTvdb) {
+                    setJellyfinSeries(matchingByTvdb);
+                  }
+                } catch (err) {
+                  console.log('Could not find in Jellyfin by TVDB:', err);
+                }
+              }
             }
           } catch (error) {
             console.log('Error checking Sonarr:', error);
@@ -363,13 +380,37 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
     }
   };
 
-  const handlePlay = () => {
-    // Can only play if we have Jellyfin series
+  const handlePlay = async () => {
+    // If we already have Jellyfin series, play it directly
     if (jellyfinSeries) {
       onPlay(jellyfinSeries);
-    } else {
-      alert('This series is not in your Jellyfin library yet. Download it first!');
+      return;
     }
+    
+    // If series is in Sonarr with downloaded episodes, try to find it in Jellyfin
+    if (sonarrSeries && sonarrSeries.statistics?.episodeFileCount > 0) {
+      try {
+        // Try to find the series in Jellyfin by TVDB ID
+        const tvdbIdToSearch = sonarrSeries.tvdbId || tvdbId;
+        if (tvdbIdToSearch) {
+          const config = await jellyfinApi.getConfig();
+          const response = await fetch(
+            `${config.jellyfinUrl}/Items?IncludeItemTypes=Series&Recursive=true&userId=${config.userId}&api_key=${config.apiKey}`
+          );
+          const data = await response.json();
+          const foundSeries = data.Items?.find(s => s.ProviderIds?.Tvdb == tvdbIdToSearch);
+          
+          if (foundSeries) {
+            onPlay(foundSeries);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error finding series in Jellyfin:', error);
+      }
+    }
+    
+    alert('This series is not in your Jellyfin library yet. Download it first or wait for Jellyfin to scan!');
   };
 
   const backdropUrl = tmdbTVApi.getBackdropUrl(tvDetails?.backdrop_path);
@@ -479,7 +520,7 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
 
               {/* Action Buttons */}
               <div className="modal-actions">
-                {jellyfinSeries && (
+                {(jellyfinSeries || (sonarrSeries && sonarrSeries.statistics?.episodeFileCount > 0)) && (
                   <button 
                     className="btn-play"
                     onClick={handlePlay}

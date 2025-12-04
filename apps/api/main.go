@@ -831,7 +831,7 @@ func radarrRefreshHandler(w http.ResponseWriter, r *http.Request) {
 // Jellyfin TV Shows Handler
 func fetchJellyfinSeries(limit int, startIndex int) (*JellyfinSeriesResponse, error) {
 	url := fmt.Sprintf(
-		"%s/Users/%s/Items?SortBy=DateCreated,SortName&SortOrder=Descending&IncludeItemTypes=Series&Recursive=true&Fields=PrimaryImageAspectRatio&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop,Banner,Thumb&StartIndex=%d&ParentId=%s&Limit=%d",
+		"%s/Users/%s/Items?SortBy=DateCreated,SortName&SortOrder=Descending&IncludeItemTypes=Series&Recursive=true&Fields=PrimaryImageAspectRatio,ProviderIds&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop,Banner,Thumb&StartIndex=%d&ParentId=%s&Limit=%d",
 		config.JellyfinURL,
 		config.JellyfinUserID,
 		startIndex,
