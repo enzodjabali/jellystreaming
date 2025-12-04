@@ -526,7 +526,13 @@
   display: none;
 }
 
-/* Download Status with Actions */
+/* Download Status */
+.download-status {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+}
+
 .download-status-with-actions {
   display: flex;
   flex-direction: column;

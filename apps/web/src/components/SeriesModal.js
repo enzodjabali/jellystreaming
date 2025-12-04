@@ -232,7 +232,6 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
         };
 
         await sonarrApi.updateSeries(updatedSeriesData);
-        alert('Series updated in Sonarr! New seasons will start downloading.');
         
         // Refresh series data
         const allSonarrSeries = await sonarrApi.getSeries();
@@ -291,7 +290,6 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
 
         console.log('Adding series to Sonarr:', seriesData);
         await sonarrApi.addSeries(seriesData);
-        alert('Series added to Sonarr!');
         
         // Refresh to get updated status
         const allSonarrSeries = await sonarrApi.getSeries();
@@ -339,7 +337,6 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
             
             console.log('Adding series to Sonarr via lookup:', sonarrSeries);
             await sonarrApi.addSeries(sonarrSeries);
-            alert('Series added to Sonarr!');
             
             // Refresh to get updated status
             const allSonarrSeries = await sonarrApi.getSeries();
@@ -493,33 +490,47 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                 
                 {!sonarrSeries ? (
                   <button 
-                    className={`btn-download ${downloading ? 'downloading' : ''}`}
+                    className={`btn btn-secondary btn-large ${downloading ? 'btn-downloading' : ''}`}
                     onClick={handleDownload}
                     disabled={downloading}
                   >
-                    {downloading ? 'Adding...' : '⬇ Download'}
+                    <span className="btn-content">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      {downloading ? 'Adding...' : 'Download'}
+                    </span>
                   </button>
                 ) : (
-                  <div className="download-status-with-actions">
-                    {queueItem ? (
-                      <span className="status-downloading">
-                        ⬇ Downloading... {queueItem.sizeleft && queueItem.size 
-                          ? `${Math.round((1 - queueItem.sizeleft / queueItem.size) * 100)}%` 
-                          : ''}
-                      </span>
-                    ) : (
-                      <span className="status-monitored">✓ In Library</span>
+                  <>
+                    {queueItem && (
+                      <div className="download-status">
+                        <span className="status-downloading">
+                          ⬇ Downloading... {queueItem.sizeleft && queueItem.size 
+                            ? `${Math.round((1 - queueItem.sizeleft / queueItem.size) * 100)}%` 
+                            : ''}
+                        </span>
+                      </div>
                     )}
                     {selectedSeasons.length > 0 && (
                       <button 
-                        className={`btn-download-more ${downloading ? 'downloading' : ''}`}
+                        className={`btn btn-secondary btn-large ${downloading ? 'btn-downloading' : ''}`}
                         onClick={handleDownload}
                         disabled={downloading}
                       >
-                        {downloading ? 'Updating...' : '⬇ Download More Seasons'}
+                        <span className="btn-content">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                          {downloading ? 'Adding...' : 'Download'}
+                        </span>
                       </button>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
 
