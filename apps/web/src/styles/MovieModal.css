@@ -1,6 +1,6 @@
-/* Modal */
-.modal {
-  display: none;
+/* Modal - Only for MovieModal that uses .modal.active structure */
+.modal.active {
+  display: flex;
   position: fixed;
   top: 0;
   left: 0;
@@ -10,10 +10,6 @@
   z-index: 2000;
   overflow-y: auto;
   padding: 50px 20px;
-}
-
-.modal.active {
-  display: flex;
   justify-content: center;
   align-items: flex-start;
 }
@@ -154,7 +150,7 @@
   background-color: #e50914;
 }
 
-.modal-header {
+.modal-content .modal-header {
   position: relative;
   width: 100%;
   height: 450px;
@@ -162,13 +158,13 @@
   border-radius: 12px 12px 0 0;
 }
 
-.modal-image {
+.modal-content .modal-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.modal-body {
+.modal-content .modal-body {
   padding: 40px;
 }
 
@@ -516,6 +512,10 @@
 
 .season-status.downloaded {
   color: #22c55e;
+}
+
+.season-status.downloading {
+  color: #fbbf24;
 }
 
 .season-status.monitored {

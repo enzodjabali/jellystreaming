@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import '../styles/Navbar.css';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout, isAdmin } = useAuth();
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,8 +20,24 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const isActive = (path) => {
     return location.pathname === path;
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   return (
@@ -50,6 +71,50 @@ const Navbar = () => {
             </Link>
           </li>
         </ul>
+        <div className="nav-user" ref={dropdownRef}>
+          <button 
+            className="user-button"
+            onClick={() => setShowDropdown(!showDropdown)}
+          >
+            <span className="user-icon">👤</span>
+            <span className="user-name">{user?.username}</span>
+            <span className={`dropdown-arrow ${showDropdown ? 'open' : ''}`}>▼</span>
+          </button>
+          {showDropdown && (
+            <div className="user-dropdown">
+              <div className="dropdown-header">
+                <div className="dropdown-username">{user?.username}</div>
+                <div className="dropdown-role">
+                  {isAdmin ? 'Administrator' : 'User'}
+                </div>
+              </div>
+              <div className="dropdown-divider"></div>
+              <Link 
+                to="/profile" 
+                className="dropdown-item"
+                onClick={() => setShowDropdown(false)}
+              >
+                <span>⚙️</span> Profile Settings
+              </Link>
+              {isAdmin && (
+                <Link 
+                  to="/users" 
+                  className="dropdown-item"
+                  onClick={() => setShowDropdown(false)}
+                >
+                  <span>👥</span> Manage Users
+                </Link>
+              )}
+              <div className="dropdown-divider"></div>
+              <button 
+                className="dropdown-item logout"
+                onClick={handleLogout}
+              >
+                <span>🚪</span> Logout
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );
