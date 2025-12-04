@@ -76,7 +76,7 @@ const Navbar = () => {
             className="user-button"
             onClick={() => setShowDropdown(!showDropdown)}
           >
-            <span className="user-icon">👤</span>
+            <span className="user-icon"></span>
             <span className="user-name">{user?.username}</span>
             <span className={`dropdown-arrow ${showDropdown ? 'open' : ''}`}>▼</span>
           </button>
@@ -94,7 +94,7 @@ const Navbar = () => {
                 className="dropdown-item"
                 onClick={() => setShowDropdown(false)}
               >
-                <span>⚙️</span> Profile Settings
+                Profile Settings
               </Link>
               {isAdmin && (
                 <Link 
@@ -102,7 +102,7 @@ const Navbar = () => {
                   className="dropdown-item"
                   onClick={() => setShowDropdown(false)}
                 >
-                  <span>👥</span> Manage Users
+                  Manage Users
                 </Link>
               )}
               <div className="dropdown-divider"></div>
@@ -110,7 +110,7 @@ const Navbar = () => {
                 className="dropdown-item logout"
                 onClick={handleLogout}
               >
-                <span>🚪</span> Logout
+                Logout
               </button>
             </div>
           )}
