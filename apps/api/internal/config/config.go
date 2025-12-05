@@ -22,16 +22,16 @@ type Config struct {
 // Load loads configuration from environment variables
 func Load() *Config {
 	return &Config{
-		JellyfinURL:     getEnv("JELLYFIN_URL", "https://watch.jellystreaming.ovh"),
-		JellyfinUserID:  getEnv("JELLYFIN_USER_ID", "700d4b2ee01941da951a1d2c716476cd"),
+		JellyfinURL:     getEnv("JELLYFIN_URL", ""),
+		JellyfinUserID:  getEnv("JELLYFIN_USER_ID", ""),
 		JellyfinAPIKey:  getEnv("JELLYFIN_API_KEY", ""),
-		ParentID:        getEnv("JELLYFIN_PARENT_ID", "db4c1708cbb5dd1676284a40f2950aba"),
-		TVShowsParentID: getEnv("JELLYFIN_TVSHOWS_PARENT_ID", "d565273fd114d77bdf349a2896867069"),
+		ParentID:        getEnv("JELLYFIN_PARENT_ID", ""),
+		TVShowsParentID: getEnv("JELLYFIN_TVSHOWS_PARENT_ID", ""),
 		Port:            getEnv("PORT", "8080"),
 		TMDBToken:       getEnv("TMDB_TOKEN", ""),
-		RadarrURL:       getEnv("RADARR_URL", "https://radarr.jellystreaming.ovh"),
+		RadarrURL:       getEnv("RADARR_URL", ""),
 		RadarrAPIKey:    getEnv("RADARR_API_KEY", ""),
-		SonarrURL:       getEnv("SONARR_URL", "https://sonarr.jellystreaming.ovh"),
+		SonarrURL:       getEnv("SONARR_URL", ""),
 		SonarrAPIKey:    getEnv("SONARR_API_KEY", ""),
 		MongoDBURI:      getEnv("MONGODB_URI", ""),
 		JWTSecret:       getEnv("JWT_SECRET", ""),
