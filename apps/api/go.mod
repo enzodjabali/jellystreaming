@@ -1,4 +1,4 @@
-module github.com/enzodjabali/jellystreaming/api
+module jellystreaming
 
 go 1.21
 
