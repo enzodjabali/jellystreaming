@@ -3,12 +3,14 @@ import { jellyfinApi } from '../services/api';
 import VideoPlayer from '../components/VideoPlayer';
 import '../styles/MyMovies.css';
 
+import { TMDBMovie, TMDBTVShow, JellyfinMovie, JellyfinSeries, JellyfinConfig, RadarrMovie, RadarrQueueItem, SonarrSeries, SonarrQueueItem, User } from '../types';
+
 const MyMovies = () => {
   const [movies, setMovies] = useState([]);
-  const [config, setConfig] = useState(null);
+  const [config, setConfig] = useState<JellyfinConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<JellyfinMovie | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -35,7 +37,7 @@ const MyMovies = () => {
     }
   };
 
-  const handleMovieClick = (movie) => {
+  const handleMovieClick = (movie: any) => {
     setSelectedMovie(movie);
   };
 
@@ -43,7 +45,7 @@ const MyMovies = () => {
     setSelectedMovie(null);
   };
 
-  const formatRuntime = (ticks) => {
+  const formatRuntime = (ticks: number) => {
     const minutes = Math.floor(ticks / 600000000);
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;

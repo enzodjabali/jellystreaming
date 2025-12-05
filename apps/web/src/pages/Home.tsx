@@ -7,8 +7,10 @@ import VideoPlayer from '../components/VideoPlayer';
 import SeriesPlayer from '../components/SeriesPlayer';
 import '../styles/Home.css';
 
+import { TMDBMovie, TMDBTVShow, JellyfinMovie, JellyfinSeries, JellyfinConfig, RadarrMovie, RadarrQueueItem, SonarrSeries, SonarrQueueItem, User } from '../types';
+
 const Home = () => {
-  const [heroMovie, setHeroMovie] = useState(null);
+  const [heroMovie, setHeroMovie] = useState<TMDBMovie | null>(null);
   const [trending, setTrending] = useState([]);
   const [popular, setPopular] = useState([]);
   const [actionMovies, setActionMovies] = useState([]);
@@ -16,11 +18,11 @@ const Home = () => {
   const [horrorMovies, setHorrorMovies] = useState([]);
   const [trendingTV, setTrendingTV] = useState([]);
   const [popularTV, setPopularTV] = useState([]);
-  const [selectedMovie, setSelectedMovie] = useState(null);
-  const [selectedSeries, setSelectedSeries] = useState(null);
-  const [playingMovie, setPlayingMovie] = useState(null);
-  const [playingSeries, setPlayingSeries] = useState(null);
-  const [jellyfinConfig, setJellyfinConfig] = useState(null);
+  const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
+  const [selectedSeries, setSelectedSeries] = useState<TMDBTVShow | null>(null);
+  const [playingMovie, setPlayingMovie] = useState<JellyfinMovie | null>(null);
+  const [playingSeries, setPlayingSeries] = useState<JellyfinSeries | null>(null);
+  const [jellyfinConfig, setJellyfinConfig] = useState<JellyfinConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [navScrolled, setNavScrolled] = useState(false);
 
@@ -114,7 +116,7 @@ const Home = () => {
     }
   };
 
-  const handleMovieClick = async (movie) => {
+  const handleMovieClick = async (movie: any) => {
     try {
       const details = await tmdbApi.getMovieDetails(movie.id);
       setSelectedMovie(details);
@@ -123,7 +125,7 @@ const Home = () => {
     }
   };
 
-  const handleSeriesClick = async (series) => {
+  const handleSeriesClick = async (series: any) => {
     try {
       const details = await tmdbTVApi.getTVDetails(series.id);
       setSelectedSeries(details);
@@ -137,7 +139,7 @@ const Home = () => {
     setSelectedSeries(null);
   };
 
-  const handlePlayMovie = (jellyfinMovie) => {
+  const handlePlayMovie = (jellyfinMovie: any) => {
     if (jellyfinMovie) {
       // Movie exists in Jellyfin, play it
       setPlayingMovie(jellyfinMovie);
@@ -148,7 +150,7 @@ const Home = () => {
     }
   };
 
-  const handlePlaySeries = (jellyfinSeries) => {
+  const handlePlaySeries = (jellyfinSeries: any) => {
     if (jellyfinSeries) {
       setPlayingSeries(jellyfinSeries);
       setSelectedSeries(null);

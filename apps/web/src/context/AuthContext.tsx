@@ -1,11 +1,27 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { API_URL } from '../config';
+import { User, LoginResult } from '../types';
 
-const AuthContext = createContext(null);
+interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  loading: boolean;
+  login: (username: string, password: string) => Promise<LoginResult>;
+  logout: () => void;
+  updateUser: (updatedUser: User) => void;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+}
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+const AuthContext = createContext<AuthContextType | null>(null);
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
   // Verify token on mount
@@ -24,7 +40,7 @@ export const AuthProvider = ({ children }) => {
         });
 
         if (response.ok) {
-          const userData = await response.json();
+          const userData: User = await response.json();
           setUser(userData);
         } else {
           // Invalid token, clear it
@@ -43,9 +59,9 @@ export const AuthProvider = ({ children }) => {
     };
 
     verifyToken();
-  }, [token, API_URL]);
+  }, [token]);
 
-  const login = async (username, password) => {
+  const login = async (username: string, password: string): Promise<LoginResult> => {
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
@@ -66,7 +82,7 @@ export const AuthProvider = ({ children }) => {
       setUser(data.user);
       return { success: true };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   };
 
@@ -76,11 +92,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const updateUser = (updatedUser) => {
+  const updateUser = (updatedUser: User) => {
     setUser(updatedUser);
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     token,
     loading,
@@ -98,7 +114,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');

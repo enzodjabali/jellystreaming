@@ -2,16 +2,25 @@ import React, { useRef, useEffect, useState } from 'react';
 import Hls from 'hls.js';
 import './VideoPlayer.css';
 
-const VideoPlayer = ({ movie, config, onClose }) => {
+import { TMDBMovie, TMDBTVShow, JellyfinMovie, JellyfinSeries, JellyfinConfig, RadarrMovie, RadarrQueueItem, SonarrSeries, SonarrQueueItem, User } from '../types';
+
+
+interface VideoPlayerProps {
+  movie: any;
+  config: any;
+  onClose: () => void;
+}
+
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ movie, config, onClose }) => {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [quality, setQuality] = useState('auto');
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [audioTracks, setAudioTracks] = useState([]);
   const [subtitleTracks, setSubtitleTracks] = useState([]);
-  const [selectedAudioTrack, setSelectedAudioTrack] = useState(null);
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState<number | null>(null);
   const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState(-1); // Default to "Off"
   const [tracksLoaded, setTracksLoaded] = useState(false);
 
@@ -85,7 +94,7 @@ const VideoPlayer = ({ movie, config, onClose }) => {
     fetchMediaStreams();
   }, [movie.Id, config]);
 
-  const getQualityBitrate = (qualityLevel) => {
+  const getQualityBitrate = (qualityLevel: string) => {
     const bitrates = {
       'auto': '20000000',    // 20 Mbps
       '1080p': '10000000',   // 10 Mbps
@@ -155,14 +164,14 @@ const VideoPlayer = ({ movie, config, onClose }) => {
     return `${config.jellyfinUrl}/Videos/${movie.Id}/Subtitles/0/Stream.vtt?api_key=${config.apiKey}`;
   };
 
-  const formatRuntime = (ticks) => {
+  const formatRuntime = (ticks: number) => {
     const minutes = Math.floor(ticks / 600000000);
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
-  const handleQualityChange = (newQuality) => {
+  const handleQualityChange = (newQuality: string) => {
     setQuality(newQuality);
     setShowSettings(false);
     
@@ -182,14 +191,14 @@ const VideoPlayer = ({ movie, config, onClose }) => {
     }, 100);
   };
 
-  const handleSpeedChange = (speed) => {
+  const handleSpeedChange = (speed: number) => {
     setPlaybackSpeed(speed);
     if (videoRef.current) {
       videoRef.current.playbackRate = speed;
     }
   };
 
-  const handleAudioTrackChange = (trackIndex) => {
+  const handleAudioTrackChange = (trackIndex: number) => {
     setSelectedAudioTrack(trackIndex);
     setShowSettings(false);
     
@@ -209,7 +218,7 @@ const VideoPlayer = ({ movie, config, onClose }) => {
     }, 100);
   };
 
-  const handleSubtitleTrackChange = (trackIndex) => {
+  const handleSubtitleTrackChange = (trackIndex: number) => {
     setSelectedSubtitleTrack(trackIndex);
     setShowSettings(false);
     
@@ -230,7 +239,7 @@ const VideoPlayer = ({ movie, config, onClose }) => {
   };
 
   useEffect(() => {
-    const handleEscape = (e) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
       }

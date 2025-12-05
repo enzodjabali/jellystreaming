@@ -6,17 +6,19 @@ import VideoPlayer from '../components/VideoPlayer';
 import SeriesPlayer from '../components/SeriesPlayer';
 import '../styles/Search.css';
 
+import { TMDBMovie, TMDBTVShow, JellyfinMovie, JellyfinSeries, JellyfinConfig, RadarrMovie, RadarrQueueItem, SonarrSeries, SonarrQueueItem, User } from '../types';
+
 const Search = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [movieResults, setMovieResults] = useState([]);
   const [tvResults, setTVResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedMovie, setSelectedMovie] = useState(null);
-  const [selectedSeries, setSelectedSeries] = useState(null);
-  const [playingMovie, setPlayingMovie] = useState(null);
-  const [playingSeries, setPlayingSeries] = useState(null);
-  const [jellyfinConfig, setJellyfinConfig] = useState(null);
+  const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
+  const [selectedSeries, setSelectedSeries] = useState<TMDBTVShow | null>(null);
+  const [playingMovie, setPlayingMovie] = useState<JellyfinMovie | null>(null);
+  const [playingSeries, setPlayingSeries] = useState<JellyfinSeries | null>(null);
+  const [jellyfinConfig, setJellyfinConfig] = useState<JellyfinConfig | null>(null);
   const searchInputRef = useRef(null);
   const searchContainerRef = useRef(null);
 
@@ -24,7 +26,7 @@ const Search = () => {
     fetchJellyfinConfig();
 
     // Close suggestions when clicking outside
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (event: any) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
         setShowSuggestions(false);
       }
@@ -88,7 +90,7 @@ const Search = () => {
     }
   };
 
-  const handleMovieClick = async (movie) => {
+  const handleMovieClick = async (movie: any) => {
     try {
       const details = await tmdbApi.getMovieDetails(movie.id);
       setSelectedMovie(details);
@@ -98,7 +100,7 @@ const Search = () => {
     }
   };
 
-  const handleSeriesClick = async (series) => {
+  const handleSeriesClick = async (series: any) => {
     try {
       const details = await tmdbTVApi.getTVDetails(series.id);
       setSelectedSeries(details);
@@ -113,7 +115,7 @@ const Search = () => {
     setSelectedSeries(null);
   };
 
-  const handlePlayMovie = (jellyfinMovie) => {
+  const handlePlayMovie = (jellyfinMovie: any) => {
     if (jellyfinMovie) {
       setPlayingMovie(jellyfinMovie);
       setSelectedMovie(null);
@@ -122,7 +124,7 @@ const Search = () => {
     }
   };
 
-  const handlePlaySeries = (jellyfinSeries) => {
+  const handlePlaySeries = (jellyfinSeries: any) => {
     if (jellyfinSeries) {
       setPlayingSeries(jellyfinSeries);
       setSelectedSeries(null);
@@ -136,7 +138,7 @@ const Search = () => {
     setPlayingSeries(null);
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
 
@@ -194,7 +196,7 @@ const Search = () => {
               className="search-input"
               placeholder="Search for movies or TV shows..."
               value={searchQuery}
-              onChange={handleInputChange}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange(e)}
               onFocus={handleInputFocus}
               autoFocus
             />

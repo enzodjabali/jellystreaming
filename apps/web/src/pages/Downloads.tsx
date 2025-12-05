@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { radarrApi, sonarrApi } from '../services/api';
 import '../styles/Downloads.css';
 
+import { TMDBMovie, TMDBTVShow, JellyfinMovie, JellyfinSeries, JellyfinConfig, RadarrMovie, RadarrQueueItem, SonarrSeries, SonarrQueueItem, User } from '../types';
+
 const Downloads = () => {
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchQueue();
@@ -100,7 +102,7 @@ const Downloads = () => {
     }
   };
 
-  const getStatusBadge = (item) => {
+  const getStatusBadge = (item: any) => {
     const { status, trackedDownloadStatus, trackedDownloadState } = item;
 
     if (status === 'downloading') {
@@ -131,19 +133,19 @@ const Downloads = () => {
     return { class: 'status-unknown', label: status };
   };
 
-  const formatSize = (bytes) => {
+  const formatSize = (bytes: number) => {
     if (!bytes) return '0 B';
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const formatTimeLeft = (timeleft) => {
+  const formatTimeLeft = (timeleft: string) => {
     if (!timeleft || timeleft === '00:00:00') return 'Completed';
     return timeleft;
   };
 
-  const getProgress = (item) => {
+  const getProgress = (item: any) => {
     if (item.type === 'series') {
       // For grouped series, calculate total progress
       const size = item.totalSize;
@@ -161,7 +163,7 @@ const Downloads = () => {
     }
   };
 
-  const getSeriesTitle = (item) => {
+  const getSeriesTitle = (item: any) => {
     if (item.type === 'series') {
       const episodeCount = item.episodes.length;
       const seasonNum = item.seasonNumber || '?';
@@ -170,7 +172,7 @@ const Downloads = () => {
     return item.title;
   };
 
-  const getTimeLeft = (item) => {
+  const getTimeLeft = (item: any) => {
     if (item.type === 'series') {
       // Find the episode with the longest time left
       const maxTimeLeft = item.episodes.reduce((max, ep) => {

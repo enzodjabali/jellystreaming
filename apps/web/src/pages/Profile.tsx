@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
 import '../styles/Profile.css';
 
+import { TMDBMovie, TMDBTVShow, JellyfinMovie, JellyfinSeries, JellyfinConfig, RadarrMovie, RadarrQueueItem, SonarrSeries, SonarrQueueItem, User } from '../types';
+
 function Profile() {
   const { user, token } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
@@ -11,7 +13,7 @@ function Profile() {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
 
-  const handleChangePassword = async (e) => {
+  const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
 
@@ -108,7 +110,7 @@ function Profile() {
                 type="password"
                 id="currentPassword"
                 value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
                 placeholder="Enter current password"
                 required
                 disabled={loading}
@@ -121,7 +123,7 @@ function Profile() {
                 type="password"
                 id="newPassword"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
                 placeholder="Enter new password (min 6 characters)"
                 required
                 disabled={loading}
@@ -134,7 +136,7 @@ function Profile() {
                 type="password"
                 id="confirmPassword"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
                 required
                 disabled={loading}

@@ -1,18 +1,25 @@
 import React from 'react';
+import { JellyfinMovie, JellyfinConfig } from '../types';
 import './MovieList.css';
 
-const MovieList = ({ movies, onMovieClick, config }) => {
-  const getImageUrl = (movie) => {
+interface MovieListProps {
+  movies: JellyfinMovie[];
+  onMovieClick: (movie: JellyfinMovie) => void;
+  config: JellyfinConfig | null;
+}
+
+const MovieList: React.FC<MovieListProps> = ({ movies, onMovieClick, config }) => {
+  const getImageUrl = (movie: JellyfinMovie): string | null => {
     if (!config || !movie.ImageTags?.Primary) return null;
     return `${config.jellyfinUrl}/Items/${movie.Id}/Images/Primary?api_key=${config.apiKey}`;
   };
 
-  const getBackdropUrl = (movie) => {
+  const getBackdropUrl = (movie: JellyfinMovie): string | null => {
     if (!config || !movie.BackdropImageTags?.[0]) return null;
     return `${config.jellyfinUrl}/Items/${movie.Id}/Images/Backdrop?api_key=${config.apiKey}`;
   };
 
-  const formatRuntime = (ticks) => {
+  const formatRuntime = (ticks: number): string => {
     const minutes = Math.floor(ticks / 600000000);
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -30,7 +37,7 @@ const MovieList = ({ movies, onMovieClick, config }) => {
           >
             <div className="movie-poster">
               {getImageUrl(movie) ? (
-                <img src={getImageUrl(movie)} alt={movie.Name} />
+                <img src={getImageUrl(movie)!} alt={movie.Name} />
               ) : (
                 <div className="no-poster">
                   <span>🎬</span>

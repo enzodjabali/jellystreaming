@@ -1,5 +1,5 @@
 // Helper to get API URL from runtime config
-export const getApiUrl = () => {
+export const getApiUrl = (): string => {
   // First try runtime config (loaded from public/config.js)
   if (window.APP_CONFIG && window.APP_CONFIG.API_URL) {
     const apiUrl = window.APP_CONFIG.API_URL;

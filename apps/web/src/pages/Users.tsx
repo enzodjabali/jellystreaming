@@ -3,13 +3,15 @@ import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
 import '../styles/Users.css';
 
+import { TMDBMovie, TMDBTVShow, JellyfinMovie, JellyfinSeries, JellyfinConfig, RadarrMovie, RadarrQueueItem, SonarrSeries, SonarrQueueItem, User } from '../types';
+
 function Users() {
   const { token } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -50,7 +52,7 @@ function Users() {
     setMessage({ type: '', text: '' });
   };
 
-  const handleEdit = (user) => {
+  const handleEdit = (user: any) => {
     setModalMode('edit');
     setSelectedUser(user);
     setFormData({
@@ -63,7 +65,7 @@ function Users() {
     setMessage({ type: '', text: '' });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
 
@@ -214,7 +216,7 @@ function Users() {
                   type="text"
                   id="username"
                   value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, username: e.target.value })}
                   placeholder="Enter username"
                   required
                   disabled={modalMode === 'edit'}
@@ -227,7 +229,7 @@ function Users() {
                   type="email"
                   id="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="Enter email (optional)"
                 />
               </div>
@@ -240,7 +242,7 @@ function Users() {
                   type="password"
                   id="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, password: e.target.value })}
                   placeholder={modalMode === 'create' ? 'Enter password' : 'Enter new password'}
                   required={modalMode === 'create'}
                   minLength="4"
@@ -252,7 +254,7 @@ function Users() {
                   <input
                     type="checkbox"
                     checked={formData.isAdmin}
-                    onChange={(e) => setFormData({ ...formData, isAdmin: e.target.checked })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, isAdmin: e.target.checked })}
                   />
                   <span>Administrator</span>
                 </label>

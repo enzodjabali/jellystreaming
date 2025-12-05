@@ -2,18 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { tmdbApi, jellyfinApi, radarrApi } from '../services/api';
 import '../styles/MovieModal.css';
 
-const MovieModal = ({ movie, onClose, onPlay }) => {
-  const [jellyfinMovie, setJellyfinMovie] = useState(null);
+import { TMDBMovie, TMDBTVShow, JellyfinMovie, JellyfinSeries, JellyfinConfig, RadarrMovie, RadarrQueueItem, SonarrSeries, SonarrQueueItem, User } from '../types';
+
+
+interface MovieModalProps {
+  movie: any;
+  onClose: () => void;
+  onPlay: (movie: any) => void;
+}
+
+const MovieModal: React.FC<MovieModalProps> = ({ movie, onClose, onPlay }) => {
+  const [jellyfinMovie, setJellyfinMovie] = useState<JellyfinMovie | null>(null);
   const [checkingJellyfin, setCheckingJellyfin] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
-  const [radarrMovie, setRadarrMovie] = useState(null);
-  const [queueItem, setQueueItem] = useState(null);
+  const [radarrMovie, setRadarrMovie] = useState<RadarrMovie | null>(null);
+  const [queueItem, setQueueItem] = useState<RadarrQueueItem | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [justAdded, setJustAdded] = useState(false);
 
   useEffect(() => {
-    const handleEscape = (e) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
       }
@@ -52,7 +61,7 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
           
           // FALLBACK: If no TMDB ID match, use title + year matching
           if (!bestMatch) {
-            const normalizeTitle = (title) => {
+            const normalizeTitle = (title: string) => {
               return title
                 .toLowerCase()
                 .replace(/[:\-–—]/g, '') // Remove colons, hyphens, dashes
@@ -136,7 +145,7 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
           if (!isMounted) return;
           setQueueItem(queueMatch || null);
           
-          if (queueMatch && queueMatch.size > 0) {
+          if (queueMatch && queueMatch.size && queueMatch.size > 0 && queueMatch.sizeleft != null) {
             const progress = ((queueMatch.size - queueMatch.sizeleft) / queueMatch.size) * 100;
             setDownloadProgress(Math.max(0, Math.min(100, progress)));
           }
@@ -193,7 +202,7 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
               
               // FALLBACK: If no TMDB ID match, use title + year matching
               if (!bestMatch) {
-                const normalizeTitle = (title) => {
+                const normalizeTitle = (title: string) => {
                   return title.toLowerCase().replace(/[:\-–—]/g, '').replace(/\s+/g, ' ').trim();
                 };
                 const normalizedSearchTitle = normalizeTitle(movieTitle);
@@ -244,7 +253,7 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
         if (queueMatch) {
           setQueueItem({ ...queueMatch });
           
-          if (queueMatch.size > 0) {
+          if (queueMatch.size && queueMatch.size > 0 && queueMatch.sizeleft != null) {
             const progress = ((queueMatch.size - queueMatch.sizeleft) / queueMatch.size) * 100;
             setDownloadProgress(Math.max(0, Math.min(100, progress)));
           }
@@ -263,13 +272,13 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
     return () => clearInterval(intervalId);
   }, [radarrMovie?.id, jellyfinMovie?.Id, movie.id]);
 
-  const handleBackdropClick = (e) => {
-    if (e.target.classList.contains('modal')) {
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).classList.contains('modal')) {
       onClose();
     }
   };
 
-  const formatRuntime = (minutes) => {
+  const formatRuntime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
@@ -433,8 +442,8 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
             src={tmdbApi.getBackdropUrl(movie.backdrop_path || movie.poster_path, 'w1280')}
             alt={movie.title}
             className="modal-image"
-            onError={(e) => {
-              e.target.src = 'https://via.placeholder.com/1280x720/1a1a1a/fff?text=No+Image';
+            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/1280x720/1a1a1a/fff?text=No+Image';
             }}
           />
         </div>
@@ -585,8 +594,8 @@ const MovieModal = ({ movie, onClose, onPlay }) => {
                     <img
                       src={tmdbApi.getImageUrl(similar.poster_path, 'w185')}
                       alt={similar.title}
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/185x278/1a1a1a/fff?text=No+Image';
+                      onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/185x278/1a1a1a/fff?text=No+Image';
                       }}
                     />
                     <p>{similar.title}</p>

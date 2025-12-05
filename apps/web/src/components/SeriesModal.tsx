@@ -1,24 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import { tmdbTVApi, jellyfinTVApi, jellyfinApi, sonarrApi } from '../services/api';
+
+import { TMDBMovie, TMDBTVShow, JellyfinMovie, JellyfinSeries, JellyfinConfig, RadarrMovie, RadarrQueueItem, SonarrSeries, SonarrQueueItem, User } from '../types';
 import '../styles/MovieModal.css'; // Reuse movie modal styles for now
 
-const SeriesModal = ({ series, onClose, onPlay }) => {
-  const [tvDetails, setTvDetails] = useState(null);
+
+interface SeriesModalProps {
+  series: any;
+  onClose: () => void;
+  onPlay: (series: any) => void;
+}
+
+const SeriesModal: React.FC<SeriesModalProps> = ({ series, onClose, onPlay }) => {
+  const [tvDetails, setTvDetails] = useState<TMDBTVShow | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sonarrSeries, setSonarrSeries] = useState(null);
+  const [sonarrSeries, setSonarrSeries] = useState<SonarrSeries | null>(null);
   const [selectedSeasons, setSelectedSeasons] = useState([]);
   const [downloading, setDownloading] = useState(false);
-  const [queueItem, setQueueItem] = useState(null);
-  const [jellyfinSeries, setJellyfinSeries] = useState(null);
-  const [tvdbId, setTvdbId] = useState(null);
-  const [rootFolderPath, setRootFolderPath] = useState(null);
+  const [queueItem, setQueueItem] = useState<SonarrQueueItem | null>(null);
+  const [jellyfinSeries, setJellyfinSeries] = useState<JellyfinSeries | null>(null);
+  const [tvdbId, setTvdbId] = useState<string | null>(null);
+  const [rootFolderPath, setRootFolderPath] = useState<string | null>(null);
 
   // Check if this is a Jellyfin series (has Id) or TMDB series (has id)
   const isJellyfinSeries = series.Id !== undefined;
   const isTMDBSeries = series.id !== undefined && !isJellyfinSeries;
 
   useEffect(() => {
-    const handleEscape = (e) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
       }
@@ -166,7 +175,7 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
     fetchRootFolder();
   }, []);
 
-  const handleSeasonToggle = (seasonNumber) => {
+  const handleSeasonToggle = (seasonNumber: number) => {
     if (sonarrSeries) {
       // For existing series, toggle in selectedSeasons (will be merged later)
       setSelectedSeasons(prev => {
@@ -502,7 +511,7 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                               <input
                                 type="checkbox"
                                 checked={isChecked}
-                                onChange={() => handleSeasonToggle(season.season_number)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => () => handleSeasonToggle(season.season_number)(e)}
                                 disabled={isAlreadyInLibrary}
                               />
                               <div className="season-info">
@@ -571,7 +580,7 @@ const SeriesModal = ({ series, onClose, onPlay }) => {
                     {queueItem && queueItem.status === 'downloading' && (
                       <div className="download-status">
                         <span className="status-downloading">
-                          ⬇ Downloading... {queueItem.sizeleft && queueItem.size 
+                          ⬇ Downloading... {queueItem.sizeleft != null && queueItem.size != null
                             ? `${Math.round((1 - queueItem.sizeleft / queueItem.size) * 100)}%` 
                             : ''}
                         </span>

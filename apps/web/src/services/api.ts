@@ -1,11 +1,31 @@
 import { API_URL } from '../config';
+import {
+  TMDBMovie,
+  TMDBTVShow,
+  TMDBGenre,
+  TMDBResponse,
+  JellyfinMovie,
+  JellyfinSeries,
+  JellyfinConfig,
+  JellyfinItemsResponse,
+  RadarrMovie,
+  RadarrAddMovie,
+  RadarrQueue,
+  RadarrRootFolder,
+  RadarrMovieStatus,
+  SonarrSeries,
+  SonarrAddSeries,
+  SonarrQueue,
+  SonarrRootFolder,
+  SonarrSeriesStatus,
+} from '../types';
 
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
 // Helper function to get auth headers
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('token');
-  const headers = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
   
@@ -17,7 +37,7 @@ const getAuthHeaders = () => {
 };
 
 // Helper function for authenticated fetch
-const authenticatedFetch = async (url, options = {}) => {
+const authenticatedFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const headers = getAuthHeaders();
   
   const response = await fetch(url, {
@@ -40,7 +60,7 @@ const authenticatedFetch = async (url, options = {}) => {
 
 // TMDB API Functions
 export const tmdbApi = {
-  getTrending: async (type = 'movie', timeWindow = 'week', page = 1) => {
+  getTrending: async (type: 'movie' | 'tv' = 'movie', timeWindow: 'day' | 'week' = 'week', page: number = 1): Promise<TMDBResponse<TMDBMovie>> => {
     try {
       const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/trending?type=${type}&time_window=${timeWindow}&page=${page}`
@@ -53,7 +73,7 @@ export const tmdbApi = {
     }
   },
 
-  getPopular: async (page = 1) => {
+  getPopular: async (page: number = 1): Promise<TMDBResponse<TMDBMovie>> => {
     try {
       const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/popular?page=${page}`
@@ -66,7 +86,7 @@ export const tmdbApi = {
     }
   },
 
-  getMovieDetails: async (movieId) => {
+  getMovieDetails: async (movieId: number): Promise<TMDBMovie> => {
     try {
       const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/movie?id=${movieId}`
@@ -79,7 +99,7 @@ export const tmdbApi = {
     }
   },
 
-  getGenres: async () => {
+  getGenres: async (): Promise<{ genres: TMDBGenre[] }> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/tmdb/genres`);
       if (!response.ok) throw new Error('Failed to fetch genres');
@@ -90,7 +110,7 @@ export const tmdbApi = {
     }
   },
 
-  discoverMovies: async (params = {}) => {
+  discoverMovies: async (params: Record<string, string> = {}): Promise<TMDBResponse<TMDBMovie>> => {
     try {
       const queryParams = new URLSearchParams(params);
       const response = await authenticatedFetch(
@@ -104,7 +124,7 @@ export const tmdbApi = {
     }
   },
 
-  searchMovies: async (query, page = 1) => {
+  searchMovies: async (query: string, page: number = 1): Promise<TMDBResponse<TMDBMovie>> => {
     try {
       const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/search?query=${encodeURIComponent(query)}&page=${page}`
@@ -117,12 +137,12 @@ export const tmdbApi = {
     }
   },
 
-  getImageUrl: (path, size = 'w500') => {
+  getImageUrl: (path: string | null, size: string = 'w500'): string | null => {
     if (!path) return null;
     return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
   },
 
-  getBackdropUrl: (path, size = 'w1280') => {
+  getBackdropUrl: (path: string | null, size: string = 'w1280'): string | null => {
     if (!path) return null;
     return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
   },
@@ -130,11 +150,11 @@ export const tmdbApi = {
 
 // Jellyfin API Functions
 export const jellyfinApi = {
-  getMovies: async () => {
+  getMovies: async (): Promise<JellyfinMovie[]> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/jellyfin/movies`);
       if (!response.ok) throw new Error('Failed to fetch movies');
-      const data = await response.json();
+      const data: JellyfinItemsResponse<JellyfinMovie> = await response.json();
       return data.Items || [];
     } catch (error) {
       console.error('Error fetching Jellyfin movies:', error);
@@ -142,7 +162,7 @@ export const jellyfinApi = {
     }
   },
 
-  getConfig: async () => {
+  getConfig: async (): Promise<JellyfinConfig> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/config`);
       if (!response.ok) throw new Error('Failed to fetch config');
@@ -153,13 +173,13 @@ export const jellyfinApi = {
     }
   },
 
-  searchMovie: async (title) => {
+  searchMovie: async (title: string): Promise<JellyfinMovie[]> => {
     try {
       const response = await authenticatedFetch(
         `${API_URL}/api/jellyfin/movies/search?title=${encodeURIComponent(title)}`
       );
       if (!response.ok) throw new Error('Failed to search movie');
-      const data = await response.json();
+      const data: JellyfinItemsResponse<JellyfinMovie> = await response.json();
       return data.Items || [];
     } catch (error) {
       console.error('Error searching movie:', error);
@@ -167,12 +187,12 @@ export const jellyfinApi = {
     }
   },
 
-  getImageUrl: (movieId, config) => {
+  getImageUrl: (movieId: string, config: JellyfinConfig | null): string | null => {
     if (!config || !movieId) return null;
     return `${config.jellyfinUrl}/Items/${movieId}/Images/Primary?api_key=${config.apiKey}`;
   },
 
-  getBackdropUrl: (movieId, config) => {
+  getBackdropUrl: (movieId: string, config: JellyfinConfig | null): string | null => {
     if (!config || !movieId) return null;
     return `${config.jellyfinUrl}/Items/${movieId}/Images/Backdrop?api_key=${config.apiKey}`;
   },
@@ -180,11 +200,11 @@ export const jellyfinApi = {
 
 // Jellyfin TV Shows API Functions
 export const jellyfinTVApi = {
-  getSeries: async () => {
+  getSeries: async (): Promise<JellyfinSeries[]> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/jellyfin/series`);
       if (!response.ok) throw new Error('Failed to fetch TV shows');
-      const data = await response.json();
+      const data: JellyfinItemsResponse<JellyfinSeries> = await response.json();
       return data.Items || [];
     } catch (error) {
       console.error('Error fetching Jellyfin TV shows:', error);
@@ -192,12 +212,12 @@ export const jellyfinTVApi = {
     }
   },
 
-  getImageUrl: (seriesId, config) => {
+  getImageUrl: (seriesId: string, config: JellyfinConfig | null): string | null => {
     if (!config || !seriesId) return null;
     return `${config.jellyfinUrl}/Items/${seriesId}/Images/Primary?api_key=${config.apiKey}`;
   },
 
-  getBackdropUrl: (seriesId, config) => {
+  getBackdropUrl: (seriesId: string, config: JellyfinConfig | null): string | null => {
     if (!config || !seriesId) return null;
     return `${config.jellyfinUrl}/Items/${seriesId}/Images/Backdrop?api_key=${config.apiKey}`;
   },
@@ -205,7 +225,7 @@ export const jellyfinTVApi = {
 
 // TMDB TV Shows API Functions
 export const tmdbTVApi = {
-  getTrending: async (timeWindow = 'week', page = 1) => {
+  getTrending: async (timeWindow: 'day' | 'week' = 'week', page: number = 1): Promise<TMDBResponse<TMDBTVShow>> => {
     try {
       const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/tv/trending?time_window=${timeWindow}&page=${page}`
@@ -218,7 +238,7 @@ export const tmdbTVApi = {
     }
   },
 
-  getPopular: async (page = 1) => {
+  getPopular: async (page: number = 1): Promise<TMDBResponse<TMDBTVShow>> => {
     try {
       const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/tv/popular?page=${page}`
@@ -231,7 +251,7 @@ export const tmdbTVApi = {
     }
   },
 
-  getTVDetails: async (tvId) => {
+  getTVDetails: async (tvId: number): Promise<TMDBTVShow> => {
     try {
       const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/tv?id=${tvId}`
@@ -244,7 +264,7 @@ export const tmdbTVApi = {
     }
   },
 
-  searchTV: async (query, page = 1) => {
+  searchTV: async (query: string, page: number = 1): Promise<TMDBResponse<TMDBTVShow>> => {
     try {
       const response = await authenticatedFetch(
         `${API_URL}/api/tmdb/tv/search?query=${encodeURIComponent(query)}&page=${page}`
@@ -257,12 +277,12 @@ export const tmdbTVApi = {
     }
   },
 
-  getImageUrl: (path, size = 'w500') => {
+  getImageUrl: (path: string | null, size: string = 'w500'): string | null => {
     if (!path) return null;
     return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
   },
 
-  getBackdropUrl: (path, size = 'w1280') => {
+  getBackdropUrl: (path: string | null, size: string = 'w1280'): string | null => {
     if (!path) return null;
     return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
   },
@@ -270,7 +290,7 @@ export const tmdbTVApi = {
 
 // Radarr API Functions
 export const radarrApi = {
-  addMovie: async (movieData) => {
+  addMovie: async (movieData: RadarrAddMovie): Promise<RadarrMovie> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/radarr/movie`, {
         method: 'POST',
@@ -287,7 +307,7 @@ export const radarrApi = {
     }
   },
 
-  getQueue: async (page = 1, pageSize = 50) => {
+  getQueue: async (page: number = 1, pageSize: number = 50): Promise<RadarrQueue> => {
     try {
       const response = await authenticatedFetch(
         `${API_URL}/api/radarr/queue?page=${page}&pageSize=${pageSize}`
@@ -300,7 +320,7 @@ export const radarrApi = {
     }
   },
 
-  getMovies: async () => {
+  getMovies: async (): Promise<RadarrMovie[]> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/radarr/movies`);
       if (!response.ok) throw new Error('Failed to fetch Radarr movies');
@@ -311,7 +331,7 @@ export const radarrApi = {
     }
   },
   
-  refreshMonitoredDownloads: async () => {
+  refreshMonitoredDownloads: async (): Promise<any> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/radarr/refresh`, {
         method: 'POST',
@@ -324,7 +344,7 @@ export const radarrApi = {
     }
   },
 
-  getRootFolders: async () => {
+  getRootFolders: async (): Promise<RadarrRootFolder[]> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/radarr/rootfolders`);
       if (!response.ok) throw new Error('Failed to fetch Radarr root folders');
@@ -335,7 +355,7 @@ export const radarrApi = {
     }
   },
 
-  getMovieStatus: (radarrMovies, tmdbId) => {
+  getMovieStatus: (radarrMovies: RadarrMovie[], tmdbId: number): RadarrMovieStatus => {
     const movie = radarrMovies.find(m => m.tmdbId === tmdbId);
     if (!movie) {
       return { status: 'not_in_radarr', label: 'Not in library', monitored: false, hasFile: false };
@@ -360,7 +380,7 @@ export const radarrApi = {
 
 // Sonarr API Functions
 export const sonarrApi = {
-  addSeries: async (seriesData) => {
+  addSeries: async (seriesData: SonarrAddSeries): Promise<SonarrSeries> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/sonarr/series`, {
         method: 'POST',
@@ -377,7 +397,7 @@ export const sonarrApi = {
     }
   },
 
-  updateSeries: async (seriesData) => {
+  updateSeries: async (seriesData: SonarrSeries): Promise<SonarrSeries> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/sonarr/series`, {
         method: 'PUT',
@@ -394,7 +414,7 @@ export const sonarrApi = {
     }
   },
 
-  getQueue: async (page = 1, pageSize = 50) => {
+  getQueue: async (page: number = 1, pageSize: number = 50): Promise<SonarrQueue> => {
     try {
       const response = await authenticatedFetch(
         `${API_URL}/api/sonarr/queue?page=${page}&pageSize=${pageSize}`
@@ -407,7 +427,7 @@ export const sonarrApi = {
     }
   },
 
-  getSeries: async () => {
+  getSeries: async (): Promise<SonarrSeries[]> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/sonarr/allseries`);
       if (!response.ok) throw new Error('Failed to fetch Sonarr series');
@@ -418,7 +438,7 @@ export const sonarrApi = {
     }
   },
   
-  refreshMonitoredDownloads: async () => {
+  refreshMonitoredDownloads: async (): Promise<any> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/sonarr/refresh`, {
         method: 'POST',
@@ -431,7 +451,7 @@ export const sonarrApi = {
     }
   },
 
-  getRootFolders: async () => {
+  getRootFolders: async (): Promise<SonarrRootFolder[]> => {
     try {
       const response = await authenticatedFetch(`${API_URL}/api/sonarr/rootfolders`);
       if (!response.ok) throw new Error('Failed to fetch Sonarr root folders');
@@ -442,7 +462,7 @@ export const sonarrApi = {
     }
   },
 
-  getSeriesStatus: (sonarrSeries, tvdbId) => {
+  getSeriesStatus: (sonarrSeries: SonarrSeries[], tvdbId: number): SonarrSeriesStatus => {
     const series = sonarrSeries.find(s => s.tvdbId === tvdbId);
     if (!series) {
       return { status: 'not_in_sonarr', label: 'Not in library', monitored: false };

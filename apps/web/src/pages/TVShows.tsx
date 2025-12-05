@@ -4,13 +4,15 @@ import SeriesModal from '../components/SeriesModal';
 import SeriesPlayer from '../components/SeriesPlayer';
 import '../styles/TVShows.css';
 
+import { TMDBMovie, TMDBTVShow, JellyfinMovie, JellyfinSeries, JellyfinConfig, RadarrMovie, RadarrQueueItem, SonarrSeries, SonarrQueueItem, User } from '../types';
+
 function TVShows() {
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [config, setConfig] = useState(null);
-  const [selectedSeries, setSelectedSeries] = useState(null);
-  const [playingSeries, setPlayingSeries] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [config, setConfig] = useState<JellyfinConfig | null>(null);
+  const [selectedSeries, setSelectedSeries] = useState<JellyfinSeries | null>(null);
+  const [playingSeries, setPlayingSeries] = useState<JellyfinSeries | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -101,8 +103,8 @@ function TVShows() {
                   src={jellyfinTVApi.getImageUrl(s.Id, config)}
                   alt={s.Name}
                   loading="lazy"
-                  onError={(e) => {
-                    e.target.src = 'https://via.placeholder.com/300x450/1a1a1a/666?text=No+Image';
+                  onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x450/1a1a1a/666?text=No+Image';
                   }}
                 />
               ) : (

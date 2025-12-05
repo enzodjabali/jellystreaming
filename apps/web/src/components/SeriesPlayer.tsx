@@ -3,21 +3,29 @@ import Hls from 'hls.js';
 import { jellyfinApi } from '../services/api';
 import '../styles/SeriesPlayer.css';
 
-const SeriesPlayer = ({ series, onClose }) => {
+import { TMDBMovie, TMDBTVShow, JellyfinMovie, JellyfinSeries, JellyfinConfig, RadarrMovie, RadarrQueueItem, SonarrSeries, SonarrQueueItem, User } from '../types';
+
+
+interface SeriesPlayerProps {
+  series: any;
+  onClose: () => void;
+}
+
+const SeriesPlayer: React.FC<SeriesPlayerProps> = ({ series, onClose }) => {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
-  const [config, setConfig] = useState(null);
+  const [config, setConfig] = useState<JellyfinConfig | null>(null);
   const [seasons, setSeasons] = useState([]);
-  const [selectedSeason, setSelectedSeason] = useState(null);
+  const [selectedSeason, setSelectedSeason] = useState<any>(null);
   const [episodes, setEpisodes] = useState([]);
-  const [selectedEpisode, setSelectedEpisode] = useState(null);
+  const [selectedEpisode, setSelectedEpisode] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [quality, setQuality] = useState('auto');
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [audioTracks, setAudioTracks] = useState([]);
   const [subtitleTracks, setSubtitleTracks] = useState([]);
-  const [selectedAudioTrack, setSelectedAudioTrack] = useState(null);
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState<number | null>(null);
   const [selectedSubtitleTrack, setSelectedSubtitleTrack] = useState(-1);
   const [tracksLoaded, setTracksLoaded] = useState(false);
 
@@ -155,7 +163,7 @@ const SeriesPlayer = ({ series, onClose }) => {
     fetchMediaStreams();
   }, [selectedEpisode, config]);
 
-  const handleEscape = (e) => {
+  const handleEscape = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       onClose();
     }
@@ -171,7 +179,7 @@ const SeriesPlayer = ({ series, onClose }) => {
     };
   }, []);
 
-  const getQualityBitrate = (qualityLevel) => {
+  const getQualityBitrate = (qualityLevel: string) => {
     const bitrates = {
       'auto': '20000000',
       '1080p': '10000000',
@@ -231,16 +239,16 @@ const SeriesPlayer = ({ series, onClose }) => {
     return `${config.jellyfinUrl}/videos/${episode.Id}/master.m3u8?${params.toString()}`;
   };
 
-  const handleSeasonChange = (season) => {
+  const handleSeasonChange = (season: any) => {
     setSelectedSeason(season);
     setSelectedEpisode(null);
   };
 
-  const handleEpisodeChange = (episode) => {
+  const handleEpisodeChange = (episode: any) => {
     setSelectedEpisode(episode);
   };
 
-  const handleQualityChange = (newQuality) => {
+  const handleQualityChange = (newQuality: string) => {
     setQuality(newQuality);
     setShowSettings(false);
     
@@ -257,14 +265,14 @@ const SeriesPlayer = ({ series, onClose }) => {
     }, 100);
   };
 
-  const handleSpeedChange = (speed) => {
+  const handleSpeedChange = (speed: number) => {
     setPlaybackSpeed(speed);
     if (videoRef.current) {
       videoRef.current.playbackRate = speed;
     }
   };
 
-  const handleAudioTrackChange = (trackIndex) => {
+  const handleAudioTrackChange = (trackIndex: number) => {
     setSelectedAudioTrack(trackIndex);
     setShowSettings(false);
     
@@ -281,7 +289,7 @@ const SeriesPlayer = ({ series, onClose }) => {
     }, 100);
   };
 
-  const handleSubtitleTrackChange = (trackIndex) => {
+  const handleSubtitleTrackChange = (trackIndex: number) => {
     setSelectedSubtitleTrack(trackIndex);
     setShowSettings(false);
     

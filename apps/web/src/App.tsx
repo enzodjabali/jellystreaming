@@ -13,7 +13,7 @@ import Profile from './pages/Profile';
 import Users from './pages/Users';
 import './App.css';
 
-function App() {
+const App: React.FC = () => {
   return (
     <Router>
       <AuthProvider>
@@ -50,6 +50,6 @@ function App() {
       </AuthProvider>
     </Router>
   );
-}
+};
 
 export default App;
