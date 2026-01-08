@@ -32,7 +32,7 @@ function Login() {
       <div className="login-box">
         <div className="login-header">
           <h1>JellyStreaming</h1>
-          <p>Sign in to continue</p>
+          <p>Sign in to continue now</p>
         </div>
 
         {error && (
